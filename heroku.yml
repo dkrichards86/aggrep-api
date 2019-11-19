@@ -7,6 +7,7 @@ build:
   docker:
     web: Dockerfile
   config:
+    FLASK_APP: autoapp.py
     FLASK_ENV: production
 
 release:
