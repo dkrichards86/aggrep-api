@@ -1,0 +1,8 @@
+Welcome to Ticker, {{ user.email }}!
+
+Please confirm your email address by visiting http://localhost:3000/email/confirm/{{token}} in your
+browser.
+
+Sincerely,
+
+The Ticker Team

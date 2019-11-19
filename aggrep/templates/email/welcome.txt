@@ -1,0 +1,12 @@
+Welcome to Ticker, {{ user.email }}!
+
+Please confirm your email address by visiting http://localhost:3000/email/confirm/{{token}} in your
+browser.
+
+As a registered user, you now have added control over the content you see. You can now manage the
+categories (http://localhost:3000/manage/categories) and  sources (http://localhost:3000/manage/sources)
+in your feed. You can also bookmark posts (http://http://localhost:3000/bookmarks) to read them later.
+
+Sincerely,
+
+The Ticker Team

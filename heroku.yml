@@ -1,0 +1,17 @@
+build:
+  docker:
+    web: Dockerfile
+  config:
+    FLASK_ENV: production
+
+release:
+  image: web
+  command:
+    - flask db upgrade
+
+run:
+  web: gunicorn autoapp:app -b 0.0.0.0:$PORT -w 3 --loglevel=info --log-file - --access-logfile -
+  worker:
+    command:
+      - celery -A celery_worker:celery worker --beat --loglevel=info
+    image: web
