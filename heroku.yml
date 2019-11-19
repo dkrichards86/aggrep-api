@@ -2,8 +2,6 @@ setup:
   addons:
     - plan: heroku-postgresql
     - plan: heroku-redis
-  config:
-    S3_BUCKET: my-example-bucket
 
 build:
   docker:
