@@ -1,0 +1,176 @@
+url,category,source
+http://feeds.reuters.com/Reuters/domesticNews,News,Reuters
+http://feeds.reuters.com/Reuters/worldNews,News,Reuters
+http://feeds.reuters.com/reuters/businessNews,Business,Reuters
+http://feeds.reuters.com/reuters/entertainment,Entertainment,Reuters
+http://feeds.reuters.com/reuters/environment,Science,Reuters
+http://feeds.reuters.com/reuters/healthNews,Health,Reuters
+http://feeds.reuters.com/reuters/scienceNews,Science,Reuters
+http://feeds.reuters.com/reuters/sportsNews,Sports,Reuters
+http://feeds.reuters.com/reuters/technologyNews,Technology,Reuters
+http://feeds.reuters.com/reuters/companyNews,Business,Reuters
+http://feeds.reuters.com/reuters/peopleNews,Entertainment,Reuters
+http://rss.cnn.com/rss/cnn_world.rss,News,CNN
+http://rss.cnn.com/rss/cnn_us.rss,News,CNN
+http://rss.cnn.com/rss/cnn_allpolitics.rss,News,CNN
+http://rss.cnn.com/rss/cnn_health.rss,Health,CNN
+http://rss.cnn.com/rss/cnn_showbiz.rss,Entertainment,CNN
+http://feeds.foxnews.com/foxnews/entertainment,Entertainment,Fox News
+http://feeds.foxnews.com/foxnews/health,Health,Fox News
+http://feeds.foxnews.com/foxnews/politics,News,Fox News
+http://feeds.foxnews.com/foxnews/science,Science,Fox News
+http://feeds.foxnews.com/foxnews/sports,Sports,Fox News
+http://feeds.foxnews.com/foxnews/tech,Technology,Fox News
+http://feeds.foxnews.com/foxnews/national,News,Fox News
+http://feeds.foxnews.com/foxnews/world,News,Fox News
+http://feeds.bbci.co.uk/news/rss.xml,News,BBC
+http://feeds.bbci.co.uk/news/world/rss.xml,News,BBC
+http://feeds.bbci.co.uk/news/uk/rss.xml,News,BBC
+http://feeds.bbci.co.uk/news/business/rss.xml,Business,BBC
+http://feeds.bbci.co.uk/news/politics/rss.xml,News,BBC
+http://feeds.bbci.co.uk/news/health/rss.xml,Health,BBC
+http://feeds.bbci.co.uk/news/science_and_environment/rss.xml,Science,BBC
+http://feeds.bbci.co.uk/news/technology/rss.xml,Technology,BBC
+http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml,Entertainment,BBC
+http://rss.nytimes.com/services/xml/rss/nyt/US.xml,News,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Politics.xml,News,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/World.xml,News,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Business.xml,Business,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Technology.xml,Technology,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Sports.xml,Sports,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Science.xml,Science,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Health.xml,Health,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Arts.xml,Entertainment,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Television.xml,Entertainment,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Movies.xml,Entertainment,New York Times
+http://rss.nytimes.com/services/xml/rss/nyt/Music.xml,Entertainment,New York Times
+https://feeds.a.dj.com/rss/RSSWorldNews.xml,News,Wall Street Journal
+https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml,Business,Wall Street Journal
+https://feeds.a.dj.com/rss/RSSWSJD.xml,Technology,Wall Street Journal
+http://feeds.washingtonpost.com/rss/politics,News,Washington Post
+http://feeds.washingtonpost.com/rss/sports,Sports,Washington Post
+http://feeds.washingtonpost.com/rss/national,News,Washington Post
+http://feeds.washingtonpost.com/rss/world,News,Washington Post
+http://feeds.washingtonpost.com/rss/business,Business,Washington Post
+http://feeds.washingtonpost.com/rss/entertainment,Entertainment,Washington Post
+http://www.msnbc.com/feeds/latest,News,MSNBC
+http://www.cnbc.com/id/100727362/device/rss/rss.html,News,CNBC
+http://www.cnbc.com/id/15837362/device/rss/rss.html,News,CNBC
+http://www.cnbc.com/id/10001147/device/rss/rss.html,Business,CNBC
+http://www.cnbc.com/id/19854910/device/rss/rss.html,Technology,CNBC
+http://www.cnbc.com/id/10000113/device/rss/rss.html,News,CNBC
+http://www.cnbc.com/id/10000108/device/rss/rss.html,Science,CNBC
+http://www.cnbc.com/id/10000110/device/rss/rss.html,Entertainment,CNBC
+http://feeds.abcnews.com/abcnews/internationalheadlines,News,ABC News
+http://feeds.abcnews.com/abcnews/usheadlines,News,ABC News
+http://feeds.abcnews.com/abcnews/politicsheadlines,News,ABC News
+http://feeds.abcnews.com/abcnews/moneyheadlines,Business,ABC News
+http://feeds.abcnews.com/abcnews/technologyheadlines,Technology,ABC News
+http://feeds.abcnews.com/abcnews/healthheadlines,Health,ABC News
+http://feeds.abcnews.com/abcnews/entertainmentheadlines,Entertainment,ABC News
+http://rssfeeds.usatoday.com/usatoday-NewsTopStories,News,USA Today
+http://rssfeeds.usatoday.com/UsatodaycomWorld-TopStories,News,USA Today
+http://rssfeeds.usatoday.com/UsatodaycomSports-TopStories,Sports,USA Today
+http://rssfeeds.usatoday.com/UsatodaycomMoney-TopStories,Business,USA Today
+http://rssfeeds.usatoday.com/usatoday-TechTopStories,Technology,USA Today
+https://www.pbs.org/newshour/feeds/rss/world,News,PBS News Hour
+https://www.pbs.org/newshour/feeds/rss/economy,Business,PBS News Hour
+https://www.pbs.org/newshour/feeds/rss/science,Science,PBS News Hour
+https://www.pbs.org/newshour/feeds/rss/health,Health,PBS News Hour
+https://www.pbs.org/newshour/feeds/rss/politics,News,PBS News Hour
+https://www.pbs.org/newshour/feeds/rss/nation,News,PBS News Hour
+https://www.huffingtonpost.com/dept/entertainment/feed,Entertainment,Huffington Post
+https://www.huffingtonpost.com/section/healthy-living/feed,Health,Huffington Post
+https://www.huffingtonpost.com/section/politics/feed,News,Huffington Post
+https://www.huffingtonpost.com/section/sports/feed,Sports,Huffington Post
+https://www.huffingtonpost.com/section/technology/feed,Technology,Huffington Post
+https://www.huffingtonpost.com/section/us-news/feed,News,Huffington Post
+https://www.huffingtonpost.com/section/world-news/feed,News,Huffington Post
+https://www.huffingtonpost.com/section/business/feed,Business,Huffington Post
+https://www.huffingtonpost.com/section/health/feed,Health,Huffington Post
+https://www.economist.com/international/rss.xml,News,The Economist
+https://www.economist.com/americas/rss.xml,News,The Economist
+https://www.economist.com/united-states/rss.xml,News,The Economist
+https://www.economist.com/europe/rss.xml,News,The Economist
+https://www.economist.com/business/rss.xml,Business,The Economist
+https://www.economist.com/science-and-technology/rss.xml,Technology,The Economist
+https://www.npr.org/rss/rss.php?id=1003,News,NPR
+https://www.npr.org/rss/rss.php?id=1004,News,NPR
+https://www.npr.org/rss/rss.php?id=1014,News,NPR
+https://www.npr.org/rss/rss.php?id=1006,Business,NPR
+https://www.npr.org/rss/rss.php?id=1019,Technology,NPR
+https://www.npr.org/rss/rss.php?id=1007,Science,NPR
+https://www.npr.org/rss/rss.php?id=1128,Health,NPR
+http://feeds.feedburner.com/breitbart,News,Breitbart
+http://www.theamericanconservative.com/feed/,News,The American Conservative
+https://www.washingtontimes.com/rss/headlines/sports/,Sports,Washington Times
+https://www.washingtontimes.com/rss/headlines/culture/technology/,Technology,Washington Times
+https://www.washingtontimes.com/atom/headlines/culture/health/,Health,Washington Times
+https://www.washingtontimes.com/rss/headlines/culture/entertainment/,Entertainment,Washington Times
+https://www.washingtontimes.com/rss/headlines/news/business-economy/,Business,Washington Times
+https://www.washingtontimes.com/rss/headlines/news/national/,News,Washington Times
+https://www.washingtontimes.com/rss/headlines/news/world/,News,Washington Times
+http://thehill.com/rss/syndicator/19109,News,The Hill
+http://thehill.com/taxonomy/term/20/feed,Business,The Hill
+https://www.politico.com/rss/politics08.xml,News,Politico
+https://www.politico.com/rss/economy.xml,Business,Politico
+http://feeds.newscientist.com/science-news,Science,New Scientist
+http://feeds.newscientist.com/health,Health,New Scientist
+http://feeds.newscientist.com/tech,Technology,New Scientist
+http://feeds2.feedburner.com/thenextweb,News,The Next Web
+http://feeds.feedburner.com/time/newsfeed,News,Time
+http://feeds.feedburner.com/timeblogs/swampland,News,Time
+http://feeds2.feedburner.com/time/world,News,Time
+http://feeds2.feedburner.com/time/business,News,Time
+http://feeds.feedburner.com/timeblogs/nerd_world,Technology,Time
+http://feeds.feedburner.com/time/healthland,Health,Time
+http://feeds2.feedburner.com/time/scienceandhealth,Science,Time
+http://feeds2.feedburner.com/time/entertainment,Entertainment,Time
+https://www.theverge.com/rss/index.xml,Technology,The Verge
+https://www.vice.com/en_us/rss,News,Vice
+https://rss.medicalnewstoday.com/featurednews.xml,Health,Medical News Today
+http://www.espn.com/espn/rss/nfl/news,Sports,ESPN
+http://www.espn.com/espn/rss/nba/news,Sports,ESPN
+http://www.espn.com/espn/rss/mlb/news,Sports,ESPN
+http://www.espn.com/espn/rss/nhl/news,Sports,ESPN
+http://www.espn.com/espn/rss/rpm/news,Sports,ESPN
+http://www.espnfc.com/rss,Sports,ESPN
+http://www.espn.com/espn/rss/ncb/news,Sports,ESPN
+http://www.espn.com/espn/rss/ncf/news,Sports,ESPN
+http://www.espn.com/espn/rss/news,Sports,ESPN
+https://api.foxsports.com/v1/rss,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=nfl,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=nhl,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=nba,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=mlb,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=nascar,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=cfb,Sports,Fox Sports
+https://api.foxsports.com/v1/rss?tag=cbk,Sports,Fox Sports
+https://www.nextbigfuture.com/feed,Technology,Next Big Future
+https://www.engadget.com/rss.xml,Technology,Engadget
+http://feeds.feedburner.com/TechCrunch,Technology,Tech Crunch
+https://www.techradar.com/rss,Technology,Tech Radar
+https://www.wired.com/feed/rss,Technology,Wired
+https://www.wired.com/feed/category/business/latest/rss,Business,Wired
+https://www.wired.com/feed/category/culture/latest/rss,Entertainment,Wired
+https://www.wired.com/feed/category/science/latest/rss,Science,Wired
+http://feeds.arstechnica.com/arstechnica/index,Technology,Ars Technica
+https://www.buzzfeed.com/usnews.xml,News,Buzzfeed
+https://www.buzzfeed.com/tvandmovies.xml,Entertainment,Buzzfeed
+https://www.buzzfeed.com/health.xml,Health,Buzzfeed
+https://www.buzzfeed.com/tech.xml,Technology,Buzzfeed
+https://www.buzzfeed.com/sports.xml,Sports,Buzzfeed
+https://www.buzzfeed.com/business.xml,Business,Buzzfeed
+https://www.theguardian.com/world/rss,News,The Guardian
+https://www.theguardian.com/us/rss,News,The Guardian
+https://www.theguardian.com/us/sport/rss,Sports,The Guardian
+https://www.theguardian.com/us/culture/rss,Entertainment,The Guardian
+https://www.theguardian.com/us/business/rss,Business,The Guardian
+https://www.theguardian.com/us/technology/rss,Technology,The Guardian
+https://www.vox.com/rss/index.xml,News,Vox
+https://www.latimes.com/world-nation/rss2.0.xml,News,LA Times
+https://www.latimes.com/sports/rss2.0.xml,Sports,LA Times
+https://www.latimes.com/politics/rss2.0.xml,News,LA Times
+https://www.latimes.com/business/rss2.0.xml,Business,LA Times,
+https://www.latimes.com/entertainment-arts/rss2.0.xml,Entertainment,LA Times
+https://www.latimes.com/science/rss2.0.xml,Science,LA Times
