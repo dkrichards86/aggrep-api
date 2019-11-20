@@ -28,7 +28,7 @@ from aggrep.utils import get_cache_key
 POPULAR = "popular"
 LATEST = "latest"
 
-api = Blueprint("api", __name__, url_prefix="/api/v1", template_folder="templates")
+api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
 
 
 @api.before_app_request
