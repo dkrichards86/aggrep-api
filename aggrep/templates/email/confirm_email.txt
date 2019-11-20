@@ -1,6 +1,6 @@
 Welcome to Ticker, {{ user.email }}!
 
-Please confirm your email address by visiting http://localhost:3000/email/confirm/{{token}} in your
+Please confirm your email address by visiting http://www.aggregatereport.com/email/confirm/{{token}} in your
 browser.
 
 Sincerely,

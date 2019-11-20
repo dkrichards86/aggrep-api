@@ -1,6 +1,6 @@
 Hi there, {{ user.email }}.
 
-To reset your password, follow this link: localhost:3000/reset/{{token}}
+To reset your password, follow this link: www.aggregatereport.com/reset/{{token}}
 
 If you have not requested a password reset simply ignore this message.
 
