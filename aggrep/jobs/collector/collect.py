@@ -40,7 +40,7 @@ def get_due_feeds():
     return due_feeds
 
 
-def get_source_posts(feed, archival_offset):
+def get_source_cache(feed, archival_offset):
     """Get posts from a source."""
     source_posts = Post.query.filter(Post.published_datetime >= archival_offset).filter(
         Post.feed.has(Feed.source.has(Source.id == feed.source.id))
