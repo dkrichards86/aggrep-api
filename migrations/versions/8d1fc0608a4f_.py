@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c254206f6255
+Revision ID: 8d1fc0608a4f
 Revises: 
-Create Date: 2019-11-19 01:12:10.857763
+Create Date: 2019-11-22 21:32:37.883111
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c254206f6255'
+revision = '8d1fc0608a4f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,10 +26,9 @@ def upgrade():
     sa.UniqueConstraint('slug'),
     sa.UniqueConstraint('title')
     )
-    op.create_table('joblock',
+    op.create_table('job_types',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('job', sa.Enum('COLLECT', 'PROCESS', 'RELATE', name='jobs'), nullable=True),
-    sa.Column('lock_datetime', sa.DateTime(), nullable=False),
+    sa.Column('job', sa.String(length=40), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('sources',
@@ -57,6 +56,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.ForeignKeyConstraint(['source_id'], ['sources.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('joblock',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('job_type', sa.Integer(), nullable=True),
+    sa.Column('lock_datetime', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['job_type'], ['job_types.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('job_type')
     )
     op.create_table('user_excluded_categories',
     sa.Column('user_id', sa.Integer(), nullable=True),
@@ -103,16 +110,6 @@ def upgrade():
     op.create_index(op.f('ix_bookmarks_post_id'), 'bookmarks', ['post_id'], unique=False)
     op.create_index(op.f('ix_bookmarks_user_id'), 'bookmarks', ['user_id'], unique=False)
     op.create_index('ix_user_bookmark', 'bookmarks', ['user_id', 'post_id'], unique=False)
-    op.create_table('clicks',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('post_id', sa.Integer(), nullable=True),
-    sa.Column('action_datetime', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_clicks_post_id'), 'clicks', ['post_id'], unique=False)
     op.create_table('entities',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('entity', sa.String(length=40), nullable=False),
@@ -128,6 +125,16 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('post_id')
     )
+    op.create_table('post_actions',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('post_id', sa.Integer(), nullable=True),
+    sa.Column('clicks', sa.Integer(), nullable=True),
+    sa.Column('impressions', sa.Integer(), nullable=True),
+    sa.Column('ctr', sa.Numeric(precision=4, scale=3), nullable=True),
+    sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_post_actions_post_id'), 'post_actions', ['post_id'], unique=False)
     op.create_table('similarities',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('source_id', sa.Integer(), nullable=True),
@@ -152,11 +159,11 @@ def downgrade():
     op.drop_table('similarity_queue')
     op.drop_index(op.f('ix_similarities_source_id'), table_name='similarities')
     op.drop_table('similarities')
+    op.drop_index(op.f('ix_post_actions_post_id'), table_name='post_actions')
+    op.drop_table('post_actions')
     op.drop_table('entity_queue')
     op.drop_index(op.f('ix_entities_post_id'), table_name='entities')
     op.drop_table('entities')
-    op.drop_index(op.f('ix_clicks_post_id'), table_name='clicks')
-    op.drop_table('clicks')
     op.drop_index('ix_user_bookmark', table_name='bookmarks')
     op.drop_index(op.f('ix_bookmarks_user_id'), table_name='bookmarks')
     op.drop_index(op.f('ix_bookmarks_post_id'), table_name='bookmarks')
@@ -166,9 +173,10 @@ def downgrade():
     op.drop_table('feed_statuses')
     op.drop_table('user_excluded_sources')
     op.drop_table('user_excluded_categories')
+    op.drop_table('joblock')
     op.drop_table('feeds')
     op.drop_table('user')
     op.drop_table('sources')
-    op.drop_table('joblock')
+    op.drop_table('job_types')
     op.drop_table('categories')
     # ### end Alembic commands ###
