@@ -5,7 +5,7 @@ from datetime import timedelta, timezone
 from flask import current_app
 
 from aggrep import db
-from aggrep.models import JobLock, Jobs, Post, Similarity, SimilarityProcessQueue
+from aggrep.models import JobLock, JobType, Post, Similarity, SimilarityProcessQueue
 from aggrep.utils import now, overlap
 
 BATCH_SIZE = 100
@@ -14,7 +14,8 @@ THRESHOLD = 0.75
 
 def process_similarities():
     """Process posts for similarities."""
-    prior_lock = JobLock.query.filter(JobLock.job == Jobs.RELATE).first()
+    job_type = JobType.query.filter(JobType.job == 'RELATE').first()
+    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
     if prior_lock is not None:
         lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
         if lock_datetime >= now() - timedelta(minutes=8):
@@ -30,7 +31,8 @@ def process_similarities():
         current_app.logger.info("No posts in similarity processing queue. Skipping...")
         return
 
-    lock = JobLock.create(job=Jobs.RELATE, lock_datetime=now())
+    job_type = JobType.query.filter(JobType.job == 'RELATE').first()
+    lock = JobLock.create(job=job_type, lock_datetime=now())
 
     current_app.logger.info(
         "Processing {} posts in similarity queue.".format(len(enqueued_posts))

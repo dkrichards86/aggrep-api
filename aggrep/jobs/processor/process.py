@@ -12,7 +12,7 @@ from aggrep.models import (
     Entity,
     EntityProcessQueue,
     JobLock,
-    Jobs,
+    JobType,
     SimilarityProcessQueue,
 )
 from aggrep.utils import now
@@ -68,7 +68,8 @@ def extract(text):
 
 def process_entities():
     """Process entities."""
-    prior_lock = JobLock.query.filter(JobLock.job == Jobs.PROCESS).first()
+    job_type = JobType.query.filter(JobType.job == 'PROCESS').first()
+    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
     if prior_lock is not None:
         lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
         if lock_datetime >= now() - timedelta(minutes=8):
@@ -82,7 +83,8 @@ def process_entities():
         current_app.logger.info("No posts in entity processing queue. Skipping...")
         return
 
-    lock = JobLock.create(job=Jobs.PROCESS, lock_datetime=now())
+    job_type = JobType.query.filter(JobType.job == 'PROCESS').first()
+    lock = JobLock.create(job=job_type, lock_datetime=now())
 
     current_app.logger.info(
         "Processing {} posts in entity queue.".format(len(enqueued_posts))

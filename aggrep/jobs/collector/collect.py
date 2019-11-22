@@ -6,7 +6,7 @@ from flask import current_app
 
 from aggrep import db
 from aggrep.jobs.collector.post_parser import PostParser
-from aggrep.models import EntityProcessQueue, Feed, JobLock, Jobs, Post, Source, Status
+from aggrep.models import EntityProcessQueue, Feed, JobLock, JobType, Post, PostAction, Source, Status
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 1  # 2**1 minutes
@@ -15,7 +15,8 @@ MAX_UPDATE_FREQ = 8  # 2**8 minutes
 
 def is_locked():
     """Check if the job is locked."""
-    prior_lock = JobLock.query.filter(JobLock.job == Jobs.COLLECT).first()
+    job_type = JobType.query.filter(JobType.job == 'COLLECT').first()
+    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
     if prior_lock is not None:
         lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
         if lock_datetime >= now() - timedelta(minutes=8):
@@ -39,7 +40,7 @@ def get_due_feeds():
     return due_feeds
 
 
-def get_source_cache(feed, archival_offset):
+def get_source_posts(feed, archival_offset):
     """Get posts from a source."""
     source_posts = Post.query.filter(Post.published_datetime >= archival_offset).filter(
         Post.feed.has(Feed.source.has(Source.id == feed.source.id))
@@ -59,7 +60,8 @@ def collect_posts(days=1):
         current_app.logger.info("No dirty feeds to collect. Skipping.")
         return
 
-    lock = JobLock.create(job=Jobs.COLLECT, lock_datetime=now())
+    job_type = JobType.query.filter(JobType.job == 'COLLECT').first()
+    lock = JobLock.create(job=job_type, lock_datetime=now())
     current_app.logger.info(
         "Collecting new posts from {} dirty feeds.".format(len(due_feeds))
     )
@@ -115,8 +117,10 @@ def collect_posts(days=1):
                     link=post.link,
                     published_datetime=post_datetime,
                 )
+                pa = PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
                 e = EntityProcessQueue(post_id=p.id)
                 db.session.add(p)
+                db.session.add(pa)
                 db.session.add(e)
 
                 new_post_count += 1

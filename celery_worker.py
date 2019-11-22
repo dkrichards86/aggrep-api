@@ -8,6 +8,7 @@ from aggrep.tasks import (
     task_process_entities,
     task_process_similarities,
     task_purge_posts,
+    task_update_stats,
 )
 
 
@@ -45,8 +46,10 @@ celery = create_celery(flask_app)
 def setup_periodic_tasks(sender, **kwargs):
     """Configure periodic jobs."""
     EVERY_MINUTE = 60
+    EVERY_FIFTEEN = EVERY_MINUTE * 15
     EVERY_DAY = 60 * 60 * 24
     sender.add_periodic_task(EVERY_MINUTE, task_collect_posts, name="collect posts")
     sender.add_periodic_task(EVERY_MINUTE, task_process_entities, name="process entities")
     sender.add_periodic_task(EVERY_MINUTE, task_process_similarities, name="process similarities")
     sender.add_periodic_task(EVERY_DAY, task_purge_posts, name="purge posts")
+    sender.add_periodic_task(EVERY_FIFTEEN, task_update_stats, name="update stats")

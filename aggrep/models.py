@@ -1,7 +1,8 @@
 """Database models."""
 from enum import Enum
 
-from flask import current_app
+import short_url
+from flask import current_app, url_for
 from sqlalchemy.ext.hybrid import hybrid_property
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -149,6 +150,7 @@ class Post(BaseModel, PaginatedAPIMixin):
     link = db.Column(db.String(255), nullable=False)
     published_datetime = db.Column(db.DateTime, nullable=False, default=now, index=True)
     ingested_datetime = db.Column(db.DateTime, nullable=False, default=now)
+    actions = db.relationship("PostAction", uselist=False, backref="posts")
 
     feed = db.relationship("Feed", uselist=False, backref="posts")
 
@@ -163,27 +165,23 @@ class Post(BaseModel, PaginatedAPIMixin):
         "SimilarityProcessQueue", backref="post",
     )
 
-    @hybrid_property
-    def click_count(self):
-        """Number of clicks (instance level)."""
-        return len(self.clicks)
+    @property
+    def uid(self):
+        return short_url.encode_url(self.id, min_length=6)
 
-    @click_count.expression
-    def click_count(self):
-        """Number of clicks (class level)."""
-        return db.select([db.func.count(Click.id)]).where(Click.post_id == self.id)
+    @staticmethod
+    def from_uid(uid):
+        return Post.query.get(short_url.decode_url(uid))
 
     @hybrid_property
-    def similar_count(self):
-        """Number of similar posts (instance level)."""
-        return len(self.similar_posts)
+    def ctr(self):
+        return float(self.actions.ctr)
 
-    @similar_count.expression
-    def similar_count(self):
-        """Number of similar posts (class level)."""
-        return db.select([db.func.count(Similarity.id)]).where(
-            Similarity.source_id == self.id
-        )
+    @ctr.expression
+    def ctr(self):
+        """Number of bookmarks (class level)."""
+
+        return db.select([PostAction.ctr]).where(PostAction.post_id == self.id)
 
     @hybrid_property
     def bookmark_count(self):
@@ -201,9 +199,10 @@ class Post(BaseModel, PaginatedAPIMixin):
         """Return as a dict."""
         payload = dict(
             id=self.id,
+            uid=self.uid,
             title=self.title,
-            link=self.link,
-            similar_count=self.similar_count,
+            link=url_for("app.follow_redirect", uid=self.uid, _external=True),
+            similar_count=len(self.similar_posts),
             feed=self.feed.to_dict(),
             published_datetime=self.published_datetime,
         )
@@ -212,6 +211,31 @@ class Post(BaseModel, PaginatedAPIMixin):
     def __repr__(self):
         """String representation."""
         return "{}: {}".format(self.id, self.title)
+
+
+class PostAction(BaseModel):
+    """PostAction model."""
+
+    __tablename__ = "post_actions"
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    clicks = db.Column(db.Integer, default=0)
+    impressions = db.Column(db.Integer, default=0)
+    ctr = db.Column(db.Numeric(4, 3), default=0)
+
+
+class Bookmark(BaseModel):
+    """Bookmark model."""
+
+    __tablename__ = "bookmarks"
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
+
+    user = db.relationship("User", uselist=False, backref="bookmarks")
+    post = db.relationship("Post", uselist=False, backref="bookmarks")
+
+
+db.Index("ix_user_bookmark", Bookmark.user_id, Bookmark.post_id)
 
 
 class EntityProcessQueue(BaseModel):
@@ -244,51 +268,25 @@ class Similarity(BaseModel):
     related_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"))
 
 
-class Jobs(Enum):
-    """Enum of background jobs."""
+class JobType(BaseModel):
+    """JobType model."""
 
-    COLLECT = "collect"
-    PROCESS = "process"
-    RELATE = "relate"
+    __tablename__ = "job_types"
+    job = db.Column(db.String(40), nullable=False)
 
 
 class JobLock(BaseModel):
     """Job lock model."""
 
     __tablename__ = "joblock"
-    job = db.Column(db.Enum(Jobs))
+    job_type = db.Column(db.Integer, db.ForeignKey("job_types.id", ondelete="CASCADE"), unique=True)
     lock_datetime = db.Column(db.DateTime, nullable=False, default=now)
+
+    job = db.relationship("JobType", uselist=False, backref="joblock")
 
     def __repr__(self):
         """String representation."""
-        return "<Job '{}' locked at {}>".format(self.job, self.lock_datetime)
-
-
-class Click(BaseModel):
-    """Click model."""
-
-    __tablename__ = "clicks"
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
-    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
-
-    user = db.relationship("User", uselist=False, backref="clicks")
-    post = db.relationship("Post", uselist=False, backref="clicks")
-
-
-class Bookmark(BaseModel):
-    """Bookmark model."""
-
-    __tablename__ = "bookmarks"
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
-    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
-
-    user = db.relationship("User", uselist=False, backref="bookmarks")
-    post = db.relationship("Post", uselist=False, backref="bookmarks")
-
-
-db.Index("ix_user_bookmark", Bookmark.user_id, Bookmark.post_id)
+        return "<Job '{}' locked at {}>".format(self.job_type.job, self.lock_datetime)
 
 
 user_excluded_sources = db.Table(

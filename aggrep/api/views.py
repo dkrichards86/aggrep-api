@@ -1,7 +1,7 @@
 """App views module."""
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, redirect
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -22,12 +22,13 @@ from aggrep.api.forms import (
     UpdateEmailForm,
     UpdatePasswordForm,
 )
-from aggrep.models import Bookmark, Category, Click, Feed, Post, Source, User
+from aggrep.models import Bookmark, Category, Feed, Post, PostAction, Source, User
 from aggrep.utils import get_cache_key
 
 POPULAR = "popular"
 LATEST = "latest"
 
+app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
 
 
@@ -52,7 +53,7 @@ def sort_posts(posts, sort):
     """Sort posts by a predefined format."""
     if sort == POPULAR:
         posts = posts.order_by(
-            desc(Post.click_count),
+            desc(Post.ctr),
             desc(Post.bookmark_count),
             desc(Post.published_datetime),
         )
@@ -60,6 +61,33 @@ def sort_posts(posts, sort):
         posts = posts.order_by(desc(Post.published_datetime))
 
     return posts
+
+
+def register_impression(post_id):
+    pa = PostAction.query.filter(PostAction.post_id==post_id).first()
+    if not pa:
+        return False
+
+    pa.impressions += 1
+    pa.save()
+    return True
+
+
+def register_click(post_id):
+    pa = PostAction.query.filter(PostAction.post_id==post_id).first()
+    if not pa:
+        return False
+
+    pa.clicks += 1
+    pa.save()
+    return True
+
+
+@app.route("/<uid>")
+def follow_redirect(uid):
+    p = Post.from_uid(uid)
+    register_click(p.id)
+    return redirect(p.link)
 
 
 @api.route("/posts")
@@ -100,6 +128,9 @@ def all_posts():
             title=title
         )
         cache.set(cache_key, cached, timeout=60)
+
+        for item in cached['items']:
+            register_impression(item['id'])
 
     return jsonify(**cached), 200
 
@@ -151,6 +182,9 @@ def posts_by_source(source):
         )
         cache.set(cache_key, cached, timeout=60)
 
+        for item in cached['items']:
+            register_impression(item['id'])
+
     return jsonify(**cached), 200
 
 
@@ -200,12 +234,16 @@ def posts_by_category(category):
             title=title
         )
         cache.set(cache_key, cached, timeout=60)
+
+        for item in cached['items']:
+            register_impression(item['id'])
+
     return jsonify(**cached), 200
 
 
-@api.route("/similar/<post_id>")
+@api.route("/similar/<uid>")
 @jwt_optional
-def similar_posts(post_id):
+def similar_posts(uid):
     """Get similar posts."""
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
@@ -214,14 +252,14 @@ def similar_posts(post_id):
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
     cache_key = get_cache_key(
-        "similar_posts", identity, page, per_page, sort, route_arg=post_id
+        "similar_posts", identity, page, per_page, sort, route_arg=uid
     )
     cached = cache.get(cache_key)
 
     if cached is None:
-        source_post = Post.query.get(post_id)
+        source_post = Post.from_uid(uid)
         post_ids = set([p.related_id for p in source_post.similar_posts])
-        post_ids.add(post_id)
+        post_ids.add(source_post.id)
         posts = Post.query.filter(Post.id.in_(post_ids))
         posts = sort_posts(posts, sort)
 
@@ -233,13 +271,17 @@ def similar_posts(post_id):
                 page,
                 per_page,
                 "api.similar_posts",
-                post_id=post_id,
+                uid=uid,
             ),
             title=title
         )
         cache.set(cache_key, cached, timeout=180)
 
+        for item in cached['items']:
+            register_impression(item['id'])
+
     return jsonify(**cached), 200
+
 
 @api.route("/bookmarks")
 @jwt_required
@@ -268,67 +310,35 @@ def bookmarked_post_ids():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if request.method == "GET":
-        post_ids = [b.post.id for b in current_user.bookmarks]
-
         return jsonify(
-            bookmarks=[b.post.id for b in current_user.bookmarks]
+            bookmarks=[b.post.uid for b in current_user.bookmarks]
         )
     elif request.method == "POST":
         payload = request.get_json() or {}
-        post_id = payload.get("post_id")
+        uid = payload.get("uid")
 
-        if post_id is None:
+        if uid is None:
             return jsonify(msg="No post ID provided."), 400
 
-        post = Post.query.get(post_id)
+        post = Post.from_uid(uid)
         if post is None:
             return jsonify(msg="Post ID is invalid."), 400
 
         is_bookmarked = Bookmark.query.filter_by(
-            user_id=current_user.id, post_id=post_id
+            user_id=current_user.id, uid=uid
         ).first()
         if not is_bookmarked:
-            Bookmark.create(user_id=current_user.id, post_id=post_id)
-        return jsonify(dict(msg="Bookmark saved!", bookmarks=[b.post.id for b in current_user.bookmarks])), 200
+            Bookmark.create(user_id=current_user.id, uid=uid)
+        return jsonify(dict(msg="Bookmark saved!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
     elif request.method == "DELETE":
         payload = request.get_json() or {}
-        post_id = payload.get("post_id")
+        uid = payload.get("uid")
 
         instance = Bookmark.query.filter_by(
-            user_id=current_user.id, post_id=post_id
+            user_id=current_user.id, uid=uid
         ).first()
         instance.delete()
-        return jsonify(dict(msg="Bookmark removed!", bookmarks=[b.post.id for b in current_user.bookmarks])), 200
-
-
-@api.route("/view", methods=["POST"])
-@jwt_optional
-def track_view():
-    """Track an article read."""
-    if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
-
-    payload = request.get_json() or {}
-    post_id = payload.get("post_id")
-
-    if post_id is None:
-        return jsonify(msg="No post ID provided."), 400
-    post = Post.query.get(post_id)
-
-    if post is None:
-        return jsonify(msg="Post ID is invalid."), 400
-
-    click_dict = dict(post=post)
-
-    identity = get_jwt_identity()
-    current_user = User.get_user_from_identity(identity)
-
-    if current_user:
-        click_dict["user"] = current_user
-
-    Click.create(**click_dict)
-
-    return jsonify(msg="View successfully recorded."), 200
+        return jsonify(dict(msg="Bookmark removed!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
 
 
 # === Taxonomy Routes === #

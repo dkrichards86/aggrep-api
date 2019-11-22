@@ -103,7 +103,9 @@ def seed():
         "Health",
     )
     for cat in categories:
-        Category.create(title=cat, slug=slugify(cat))
+        c = Category.query.filter_by(title=cat).first()
+        if not c:
+            Category.create(title=cat, slug=slugify(cat))
 
     filepath = os.path.join(PROJECT_ROOT, "feeds.csv")
 
@@ -154,6 +156,15 @@ def relate():
     from aggrep.jobs.relater.relate import process_similarities
 
     process_similarities()
+
+
+@click.command()
+@with_appcontext
+def updatestats():
+    """Update post stats."""
+    from aggrep.jobs.post_analytics.ctr import update_stats
+
+    update_stats()
 
 
 @click.command()

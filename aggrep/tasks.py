@@ -8,6 +8,7 @@ from aggrep.jobs.collector.collect import collect_posts
 from aggrep.jobs.processor.process import process_entities
 from aggrep.jobs.relater.relate import process_similarities
 from aggrep.jobs.cleanser.purge import purge_posts
+from aggrep.jobs.post_analytics.ctr import update_stats
 
 
 logger = get_task_logger(__name__)
@@ -36,6 +37,13 @@ def task_purge_posts():
     """Purge expired posts."""
 
     purge_posts()
+
+
+@celery.task
+def task_update_stats():
+    """Update post stats."""
+
+    update_stats()
 
 
 @task_postrun.connect
