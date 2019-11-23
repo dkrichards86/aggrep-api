@@ -59,6 +59,7 @@ services:
       - ./autoapp.py:/code/autoapp.py
       - ./celery_worker.py:/code/celery_worker.py
       - ./config.py:/code/config.py
+      - ./newrelic.ini:/code/newrelic.ini
       - ./wait-for-postgres.sh:/code/wait-for-postgres.sh
     depends_on:
       - postgres

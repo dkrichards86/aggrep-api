@@ -16,7 +16,7 @@ release:
     - flask db upgrade
 
 run:
-  web: gunicorn autoapp:app -b 0.0.0.0:$PORT --access-logfile -
+  web: NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program gunicorn autoapp:app -b 0.0.0.0:$PORT --access-logfile -
   worker:
     command:
       - celery -A celery_worker:celery worker --beat --loglevel=info --concurrency 2
