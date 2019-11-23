@@ -1,7 +1,7 @@
 """App views module."""
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, render_template, request, redirect
+from flask import Blueprint, jsonify, render_template, request, redirect, current_app
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -325,17 +325,18 @@ def bookmarked_post_ids():
             return jsonify(msg="Post ID is invalid."), 400
 
         is_bookmarked = Bookmark.query.filter_by(
-            user_id=current_user.id, uid=uid
+            user_id=current_user.id, post_id=post.id
         ).first()
         if not is_bookmarked:
-            Bookmark.create(user_id=current_user.id, uid=uid)
+            Bookmark.create(user_id=current_user.id, post_id=post.id)
         return jsonify(dict(msg="Bookmark saved!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
     elif request.method == "DELETE":
         payload = request.get_json() or {}
         uid = payload.get("uid")
+        post = Post.from_uid(uid)
 
         instance = Bookmark.query.filter_by(
-            user_id=current_user.id, uid=uid
+            user_id=current_user.id, post_id=post.id
         ).first()
         instance.delete()
         return jsonify(dict(msg="Bookmark removed!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
@@ -479,12 +480,18 @@ def register():
         user.set_password(form.password.data)
         token = user.get_email_confirm_token()
         email_data = dict(
-            subject="[Ticker] Welcome!",
+            subject="[Aggregate Report] Welcome!",
             recipients=[user.email],
-            text_body=render_template("email/welcome.txt", user=user, token=token),
-            html_body=render_template("email/welcome.html", user=user, token=token),
+            text_body=render_template(
+                "email/welcome.txt", user=user, token=token,
+                ui_url=current_app.config['UI_URL'],
+            ),
+            html_body=render_template(
+                "email/welcome.html", user=user, token=token,
+                ui_url=current_app.config['UI_URL'],
+            ),
         )
-        send_email.delay(email_data)
+        send_email(email_data)
         payload = dict(
             msg="Registration Successful!",
             user=user.to_dict(),
@@ -515,16 +522,18 @@ def email_update():
 
         token = current_user.get_email_confirm_token()
         email_data = dict(
-            subject="[Ticker] Confirm your email!",
+            subject="[Aggregate Report] Confirm your email!",
             recipients=[current_user.email],
             text_body=render_template(
-                "email/confirm_email.txt", user=current_user, token=token
+                "email/confirm_email.txt", user=current_user, token=token,
+                ui_url=current_app.config['UI_URL'],
             ),
             html_body=render_template(
-                "email/confirm_email.html", user=current_user, token=token
+                "email/confirm_email.html", user=current_user, token=token,
+                ui_url=current_app.config['UI_URL'],
             ),
         )
-        send_email.delay(email_data)
+        send_email(email_data)
         payload = dict(
             msg="Your email has been updated. Please check your email for a confirmation link.",
             auth=dict(
@@ -554,18 +563,21 @@ def email_confirm_request():
     if current_user.confirmed:
         return jsonify(dict(msg="User is already confirmed")), 200
 
+
     token = current_user.get_email_confirm_token()
     email_data = dict(
-        subject="[Ticker] Confirm your email!",
+        subject="[Aggregate Report] Confirm your email!",
         recipients=[current_user.email],
         text_body=render_template(
-            "email/confirm_email.txt", user=current_user, token=token
+            "email/confirm_email.txt", user=current_user, token=token,
+            ui_url=current_app.config['UI_URL'],
         ),
         html_body=render_template(
-            "email/confirm_email.html", user=current_user, token=token
+            "email/confirm_email.html", user=current_user, token=token,
+            ui_url=current_app.config['UI_URL'],
         ),
     )
-    send_email.delay(email_data)
+    send_email(email_data)
     payload = dict(msg="A confirmation email has been sent to your email address.")
     return jsonify(payload), 200
 
@@ -612,12 +624,18 @@ def update_password():
 
         current_user.set_password(form.new_password.data)
         email_data = dict(
-            subject="[Ticker] Your password has been updated",
+            subject="[Aggregate Report] Your password has been updated",
             recipients=[current_user.email],
-            text_body=render_template("email/password_updated.txt", user=current_user),
-            html_body=render_template("email/password_updated.html", user=current_user),
+            text_body=render_template(
+                "email/password_updated.txt", user=current_user,
+                ui_url=current_app.config['UI_URL'],
+            ),
+            html_body=render_template(
+                "email/password_updated.html", user=current_user,
+                ui_url=current_app.config['UI_URL'],
+            ),
         )
-        send_email.delay(email_data)
+        send_email(email_data)
         payload = dict(msg="Your password has been updated.")
         return jsonify(payload), 200
     else:
@@ -641,16 +659,18 @@ def reset_password():
         if user:
             token = user.get_reset_password_token()
             email_data = dict(
-                subject="[Ticker] Reset your password",
+                subject="[Aggregate Report] Reset your password",
                 recipients=[user.email],
                 text_body=render_template(
-                    "email/reset_instructions.txt", user=user, token=token
+                    "email/reset_instructions.txt", user=user, token=token,
+                    ui_url=current_app.config['UI_URL'],
                 ),
                 html_body=render_template(
-                    "email/reset_instructions.html", user=user, token=token
+                    "email/reset_instructions.html", user=user, token=token,
+                    ui_url=current_app.config['UI_URL'],
                 ),
             )
-            send_email.delay(email_data)
+            send_email(email_data)
 
             payload = dict(
                 msg="A confirmation link has been sent to your email address."
@@ -683,12 +703,18 @@ def reset_password_confirm():
 
         user.set_password(form.new_password.data)
         email_data = dict(
-            subject="[Ticker] Your password has been reset",
+            subject="[Aggregate Report] Your password has been reset",
             recipients=[user.email],
-            text_body=render_template("email/password_updated.txt", user=user),
-            html_body=render_template("email/password_updated.html", user=user),
+            text_body=render_template(
+                "email/password_updated.txt", user=user,
+                ui_url=current_app.config['UI_URL'],
+            ),
+            html_body=render_template(
+                "email/password_updated.html", user=user,
+                ui_url=current_app.config['UI_URL'],
+            ),
         )
-        send_email.delay(email_data)
+        send_email(email_data)
         payload = dict(msg="Your password has been updated.")
         return jsonify(payload), 200
     else:

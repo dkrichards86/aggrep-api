@@ -1,9 +1,9 @@
 Hi there, {{ user.email }}.
 
-To reset your password, follow this link: www.aggregatereport.com/reset/{{token}}
+To reset your password, follow this link: {{ui_url}}/reset/{{token}}
 
 If you have not requested a password reset simply ignore this message.
 
 Sincerely,
 
-The Ticker Team
+The Aggregate Report Team

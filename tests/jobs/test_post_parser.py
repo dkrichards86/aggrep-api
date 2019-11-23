@@ -30,13 +30,13 @@ class TestPostParser(TestCase):
     def setUp(self):
         """Set up the tests."""
         rss_data = dict(
-            title="Ticker",
+            title="Aggregate Report",
             link="http://localhost.com",
             description="A description",
             datetime=(2018, 5, 5, 12, 0, 0, 6, 250, 0),
         )
         atom_data = dict(
-            title="Ticker",
+            title="Aggregate Report",
             link="http://localhost.com",
             summary="A description",
             datetime=(2018, 5, 5, 12, 0, 0, 6, 250, 0),
@@ -53,7 +53,7 @@ class TestPostParser(TestCase):
             PostParser(
                 FauxFeed(
                     {
-                        "title": "Ticker",
+                        "title": "Aggregate Report",
                         "link": "http://localhost.com",
                         "description": "A description     ",
                     }
@@ -64,7 +64,7 @@ class TestPostParser(TestCase):
             PostParser(
                 FauxFeed(
                     {
-                        "title": "Ticker",
+                        "title": "Aggregate Report",
                         "link": "http://localhost.com",
                         "description": "A description     ",
                         "datetime": (2018, 5, 5, 12),
@@ -81,7 +81,7 @@ class TestPostParser(TestCase):
         _desc_markup = PostParser(
             FauxFeed(
                 {
-                    "title": "Ticker",
+                    "title": "Aggregate Report",
                     "link": "http://localhost.com",
                     "datetime": (2018, 5, 5, 12, 0, 0, 6, 250, 0),
                     "description": "A description <br/>",
@@ -93,7 +93,7 @@ class TestPostParser(TestCase):
         _no_desc = PostParser(
             FauxFeed(
                 {
-                    "title": "Ticker",
+                    "title": "Aggregate Report",
                     "link": "http://localhost.com",
                     "datetime": (2018, 5, 5, 12, 0, 0, 6, 250, 0),
                 }
@@ -111,7 +111,7 @@ class TestPostParser(TestCase):
             PostParser(
                 FauxFeed(
                     {
-                        "title": "Ticker",
+                        "title": "Aggregate Report",
                         "description": "A description     ",
                         "datetime": (2018, 5, 5, 12, 0, 0, 6, 250, 0),
                     }
@@ -120,7 +120,7 @@ class TestPostParser(TestCase):
 
     def test_title(self):
         """Test the title attribute."""
-        expected = "Ticker"
+        expected = "Aggregate Report"
         assert self._rss.title == expected
         assert self._atom.title == expected
 

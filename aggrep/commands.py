@@ -32,7 +32,7 @@ def test(show_missing, verbose):
     if verbose:
         command_line.append("-v")
 
-    command_line.extend(["--cov-fail-under=80", "--cov=ticker"])
+    command_line.extend(["--cov-fail-under=80", "--cov=aggrep"])
 
     if show_missing:
         command_line.extend(["--cov-report", "term-missing"])

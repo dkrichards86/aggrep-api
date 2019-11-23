@@ -1,12 +1,12 @@
-Welcome to Ticker, {{ user.email }}!
+Welcome to Aggregate Report, {{ user.email }}!
 
-Please confirm your email address by visiting http://www.aggregatereport.com/email/confirm/{{token}} in your
+Please confirm your email address by visiting {{ui_url}}/email/confirm/{{token}} in your
 browser.
 
 As a registered user, you now have added control over the content you see. You can now manage the
-categories (http://www.aggregatereport.com/manage/categories) and  sources (http://www.aggregatereport.com/manage/sources)
-in your feed. You can also bookmark posts (http://http://www.aggregatereport.com/bookmarks) to read them later.
+categories ({{ui_url}}/manage/categories) and  sources ({{ui_url}}/manage/sources)
+in your feed. You can also bookmark posts ({{ui_url}}/bookmarks) to read them later.
 
 Sincerely,
 
-The Ticker Team
+The Aggregate Report Team

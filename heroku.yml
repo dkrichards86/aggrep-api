@@ -16,7 +16,7 @@ release:
     - flask db upgrade
 
 run:
-  web: gunicorn autoapp:app -b 0.0.0.0:$PORT -w 3 --log-file - --access-logfile -
+  web: gunicorn autoapp:app -b 0.0.0.0:$PORT --access-logfile -
   worker:
     command:
       - celery -A celery_worker:celery worker --beat --loglevel=info --concurrency 2

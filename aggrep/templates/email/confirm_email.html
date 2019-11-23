@@ -1,6 +1,10 @@
+{% extends "email/base.html" %}
+
+{% block content %}
 <p>
-    Welcome to Ticker, {{ user.email }}! Please
-    <a href="http://www.aggregatereport.com/email/confirm/{{token}}">confirm your email address</a>.
+    Hi there, {{ user.email }}! Please take a moment to 
+    <a href="{{ui_url}}/email/confirm/{{token}}">confirm your email address</a>.
 </p>
 <p>Sincerely,</p>
-<p>The Ticker Team</p>
+<p>The Aggregate Report Team</p>
+{% endblock %}

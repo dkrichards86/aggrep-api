@@ -1,8 +1,8 @@
-Welcome to Ticker, {{ user.email }}!
+Welcome to Aggregate Report, {{ user.email }}!
 
-Please confirm your email address by visiting http://www.aggregatereport.com/email/confirm/{{token}} in your
+Please confirm your email address by visiting {{ui_url}}/email/confirm/{{token}} in your
 browser.
 
 Sincerely,
 
-The Ticker Team
+The Aggregate Report Team

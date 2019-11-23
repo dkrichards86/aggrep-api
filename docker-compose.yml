@@ -28,6 +28,9 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       PGPASSWORD: aggrep
+      DATABASE_URL: postgresql://aggrep:aggrep@postgres/aggrep
+      REDIS_URL: redis://redis:6379
+      UI_URL: http://localhost:3000
     volumes:
       - ./aggrep:/code/aggrep
       - ./migrations:/code/migrations
@@ -47,6 +50,9 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       PGPASSWORD: aggrep
+      DATABASE_URL: postgresql://aggrep:aggrep@postgres/aggrep
+      REDIS_URL: redis://redis:6379
+      UI_URL: http://localhost:3000
     volumes:
       - ./aggrep:/code/aggrep
       - ./.env:/code/.env

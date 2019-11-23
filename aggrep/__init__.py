@@ -8,8 +8,8 @@ from flask import Flask
 from flask_caching import Cache
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_mail import Mail
 from flask_migrate import Migrate
+from flask_sendgrid import SendGrid
 from flask_sqlalchemy import SQLAlchemy
 
 from config import Config
@@ -20,26 +20,9 @@ env.read_env()
 db = SQLAlchemy()
 migrate = Migrate(directory="migrations")
 cache = Cache()
-mail = Mail()
+mail = SendGrid()
 celery = Celery()
 jwt = JWTManager()
-
-
-def register_app(config_object):
-    app = Flask(__name__.split(".")[0])
-    app.config.from_object(config_object)
-
-    return app
-
-
-def register_extensions(app):
-    cache.init_app(app)
-    db.init_app(app)
-    migrate.init_app(app, db)
-    mail.init_app(app)
-
-    jwt.init_app(app)
-    CORS(app)
 
 
 def register_blueprints(app):
@@ -74,8 +57,17 @@ def register_logger(app):
 
 def create_app(config_object=Config):
 
-    app = register_app(config_object)
-    register_extensions(app)
+    app = Flask(__name__.split(".")[0])
+    app.config.from_object(config_object)
+
+    cache.init_app(app)
+    db.init_app(app)
+    migrate.init_app(app, db)
+    mail.init_app(app)
+
+    jwt.init_app(app)
+    CORS(app)
+
     register_blueprints(app)
     register_commands(app)
     register_logger(app)

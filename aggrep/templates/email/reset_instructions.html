@@ -1,11 +1,15 @@
+{% extends "email/base.html" %}
+
+{% block content %}
 <p>
     Hi there, {{ user.email }}!
 </p>
 <p>
-    To reset your password <a href="http://www.aggregatereport.com/reset/{{token}}">click here</a>.
+    To reset your password <a href="{{ui_url}}/reset/{{token}}">click here</a>.
 </p>
 <p>
     If you have not requested a password reset simply ignore this message.
 </p>
 <p>Sincerely,</p>
-<p>The Ticker Team</p>
+<p>The Aggregate Report Team</p>
+{% endblock %}

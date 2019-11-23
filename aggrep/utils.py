@@ -1,4 +1,4 @@
-"""Ticker utils."""
+"""Aggregate Report utils."""
 
 import re
 import unicodedata
