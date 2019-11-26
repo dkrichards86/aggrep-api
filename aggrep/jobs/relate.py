@@ -9,42 +9,55 @@ from aggrep.models import JobLock, JobType, Post, Similarity, SimilarityProcessQ
 from aggrep.utils import now, overlap
 
 BATCH_SIZE = 100
-THRESHOLD = 0.75
+THRESHOLD = 0.8
+LOCK_TIMEOUT = 8
+
+
+def is_locked():
+    """Check if the job is locked."""
+    job_type = JobType.query.filter(JobType.job == "RELATE").first()
+    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
+    if prior_lock is not None:
+        lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
+        if lock_datetime >= now() - timedelta(minutes=LOCK_TIMEOUT):
+            return True
+        else:
+            prior_lock.delete()
+
+    return False
+
+
+def get_entity_cache():
+    """Get entities for recent posts."""
+    delta = now() - timedelta(days=2)
+    entity_cache = defaultdict(set)
+    recent_posts = Post.query.filter(Post.published_datetime >= delta).all()
+    for rp in recent_posts:
+        for e in rp.entities:
+            entity_cache[e.entity].add(rp.id)
+
+    return entity_cache
 
 
 def process_similarities():
     """Process posts for similarities."""
-    job_type = JobType.query.filter(JobType.job == 'RELATE').first()
-    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
-    if prior_lock is not None:
-        lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
-        if lock_datetime >= now() - timedelta(minutes=8):
-            current_app.logger.info(
-                "Similarity processing still in progress. Skipping."
-            )
-            return
-        else:
-            prior_lock.delete()
+    if is_locked():
+        current_app.logger.info("Similarity processing still in progress. Skipping.")
+        return
 
     enqueued_posts = [eq.post for eq in SimilarityProcessQueue.query.all()]
     if len(enqueued_posts) == 0:
         current_app.logger.info("No posts in similarity processing queue. Skipping...")
         return
 
-    job_type = JobType.query.filter(JobType.job == 'RELATE').first()
+    job_type = JobType.query.filter(JobType.job == "RELATE").first()
     lock = JobLock.create(job=job_type, lock_datetime=now())
 
     current_app.logger.info(
         "Processing {} posts in similarity queue.".format(len(enqueued_posts))
     )
     new_similarities = 0
-    delta = now() - timedelta(days=2)
-
-    entity_cache = defaultdict(set)
-    recent_posts = Post.query.filter(Post.published_datetime >= delta).all()
-    for rp in recent_posts:
-        for e in rp.entities:
-            entity_cache[e.entity].add(rp.id)
+    entity_cache = get_entity_cache()
 
     start = 0
     while start < len(enqueued_posts):
@@ -62,7 +75,7 @@ def process_similarities():
                 cached = entity_cache.get(e)
                 if cached is None:
                     continue
-                intersecting_post_ids = intersecting_post_ids.union(entity_cache[e])
+                intersecting_post_ids |= entity_cache[e]
 
             keyworded_posts = Post.query.filter(
                 Post.id.in_(list(intersecting_post_ids))
@@ -101,7 +114,6 @@ def process_similarities():
             raise
 
         start = end
-        end += BATCH_SIZE
 
     current_app.logger.info("Unlocking relater.")
     lock.delete()

@@ -1,10 +1,9 @@
 """Factories to help in tests."""
 
-from datetime import datetime, timezone
-
 from factory import Factory, PostGenerationMethodCall, Sequence, SubFactory, fuzzy
 
-from aggrep.models import Category, Feed, Post, Source, User
+from aggrep.models import Category, Feed, Post, PostAction, Source, User
+from aggrep.utils import now
 
 
 class CategoryFactory(Factory):
@@ -47,6 +46,15 @@ class FeedFactory(Factory):
     category = SubFactory(CategoryFactory)
 
 
+class PostActionFactory(Factory):
+    """Post Action factory."""
+
+    class Meta:
+        """Factory metadata."""
+
+        model = PostAction
+
+
 class PostFactory(Factory):
     """Post model factory."""
 
@@ -59,12 +67,11 @@ class PostFactory(Factory):
     title = Sequence(lambda n: "Post {0}".format(n))
     desc = fuzzy.FuzzyText()
     link = Sequence(lambda n: "{0}.post.com".format(n))
-    published_datetime = fuzzy.FuzzyDateTime(
-        datetime(2019, 10, 10, tzinfo=timezone.utc)
-    )
-    ingested_datetime = fuzzy.FuzzyDateTime(datetime(2019, 10, 10, tzinfo=timezone.utc))
+    published_datetime = fuzzy.FuzzyDateTime(now())
+    ingested_datetime = fuzzy.FuzzyDateTime(now())
 
     feed = SubFactory(FeedFactory)
+    actions = SubFactory(PostActionFactory)
 
 
 class UserFactory(Factory):

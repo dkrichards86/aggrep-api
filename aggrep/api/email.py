@@ -1,7 +1,8 @@
 """Aggregate Report email module."""
 from flask import current_app
 from sendgrid.helpers.mail import Email
-from aggrep import celery, mail
+
+from aggrep import mail
 
 
 def send_email(data):
@@ -10,7 +11,7 @@ def send_email(data):
     message = dict(
         subject=data["subject"],
         from_email=current_app.config["SENDGRID_DEFAULT_FROM"],
-        to_email=[Email(addr) for addr in data['recipients']],
+        to_email=[Email(addr) for addr in data["recipients"]],
         text=data["text_body"],
         html=data["html_body"],
     )

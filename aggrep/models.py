@@ -1,6 +1,4 @@
 """Database models."""
-from enum import Enum
-
 import short_url
 from flask import current_app, url_for
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -27,23 +25,22 @@ class CRUDMixin:
         instance = cls(**kwargs)
         return instance.save()
 
-    def update(self, commit=True, **kwargs):
+    def update(self, **kwargs):
         """Update specific fields of a record."""
         for attr, value in kwargs.items():
             setattr(self, attr, value)
-        return commit and self.save() or self
+        return self.save()
 
-    def save(self, commit=True):
+    def save(self):
         """Save the record."""
         db.session.add(self)
-        if commit:
-            db.session.commit()
+        db.session.commit()
         return self
 
-    def delete(self, commit=True):
+    def delete(self):
         """Remove the record from the database."""
         db.session.delete(self)
-        return commit and db.session.commit()
+        return db.session.commit()
 
 
 class BaseModel(PKMixin, CRUDMixin, db.Model):
@@ -56,7 +53,7 @@ class PaginatedAPIMixin:
     """Pagination mixin."""
 
     @staticmethod
-    def to_collection_dict(query, page, per_page, endpoint, **kwargs):
+    def to_collection_dict(query, page, per_page, **kwargs):
         """Paginate a collection."""
         resources = query.paginate(page, per_page, False)
         data = {
@@ -78,7 +75,7 @@ class Category(BaseModel):
 
     def to_dict(self):
         """Return as a dict."""
-        return dict(id=self.id, slug=self.slug, title=self.title)
+        return dict(slug=self.slug, title=self.title)
 
     def __repr__(self):
         """String representation."""
@@ -94,7 +91,7 @@ class Source(BaseModel):
 
     def to_dict(self):
         """Return as a dict."""
-        return dict(id=self.id, slug=self.slug, title=self.title)
+        return dict(slug=self.slug, title=self.title)
 
     def __repr__(self):
         """String representation."""
@@ -108,12 +105,6 @@ class Status(BaseModel):
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"), unique=True)
     update_datetime = db.Column(db.DateTime, nullable=False, default=now)
     update_frequency = db.Column(db.Integer, default=0)
-
-    def __repr__(self):
-        """String representation."""
-        return "<{} last updated at {} (interval {})>".format(
-            self.feed_id, self.update_datetime, self.update_frequency
-        )
 
 
 class Feed(BaseModel):
@@ -135,10 +126,6 @@ class Feed(BaseModel):
             source=self.source.to_dict(), category=self.category.to_dict(), url=self.url
         )
 
-    def __repr__(self):
-        """String representation."""
-        return "<{}, {}>".format(self.source.title, self.category.title)
-
 
 class Post(BaseModel, PaginatedAPIMixin):
     """Post model."""
@@ -147,7 +134,7 @@ class Post(BaseModel, PaginatedAPIMixin):
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"))
     title = db.Column(db.String(255), nullable=False)
     desc = db.Column(db.Text())
-    link = db.Column(db.String(255), nullable=False)
+    link = db.Column(db.String(255), nullable=False, unique=True)
     published_datetime = db.Column(db.DateTime, nullable=False, default=now, index=True)
     ingested_datetime = db.Column(db.DateTime, nullable=False, default=now)
     actions = db.relationship("PostAction", uselist=False, backref="posts")
@@ -158,42 +145,31 @@ class Post(BaseModel, PaginatedAPIMixin):
     enqueued_entities = db.relationship("EntityProcessQueue", backref="post")
 
     similar_posts = db.relationship(
-        "Similarity", backref="post", foreign_keys="Similarity.source_id",
+        "Similarity", backref="post", foreign_keys="Similarity.source_id"
     )
 
-    enqueued_similartities = db.relationship(
-        "SimilarityProcessQueue", backref="post",
-    )
+    enqueued_similartities = db.relationship("SimilarityProcessQueue", backref="post")
 
     @property
     def uid(self):
+        """Generate a deterministic UID from post ID."""
         return short_url.encode_url(self.id, min_length=6)
 
     @staticmethod
     def from_uid(uid):
+        """Given a deterministic UID, get the associated post."""
         return Post.query.get(short_url.decode_url(uid))
 
     @hybrid_property
     def ctr(self):
+        """Post click through rate (object level)."""
         return float(self.actions.ctr)
 
     @ctr.expression
     def ctr(self):
-        """Number of bookmarks (class level)."""
+        """Post click through rate (class level)."""
 
         return db.select([PostAction.ctr]).where(PostAction.post_id == self.id)
-
-    @hybrid_property
-    def bookmark_count(self):
-        """Number of bookmarks (instance level)."""
-        return len(self.bookmarks)
-
-    @bookmark_count.expression
-    def bookmark_count(self):
-        """Number of bookmarks (class level)."""
-        return db.select([db.func.count(Bookmark.id)]).where(
-            Bookmark.post_id == self.id
-        )
 
     def to_dict(self):
         """Return as a dict."""
@@ -217,32 +193,21 @@ class PostAction(BaseModel):
     """PostAction model."""
 
     __tablename__ = "post_actions"
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
     clicks = db.Column(db.Integer, default=0)
     impressions = db.Column(db.Integer, default=0)
     ctr = db.Column(db.Numeric(4, 3), default=0)
-
-
-class Bookmark(BaseModel):
-    """Bookmark model."""
-
-    __tablename__ = "bookmarks"
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
-    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
-
-    user = db.relationship("User", uselist=False, backref="bookmarks")
-    post = db.relationship("Post", uselist=False, backref="bookmarks")
-
-
-db.Index("ix_user_bookmark", Bookmark.user_id, Bookmark.post_id)
 
 
 class EntityProcessQueue(BaseModel):
     """Entity queue model."""
 
     __tablename__ = "entity_queue"
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
+    )
 
 
 class Entity(BaseModel):
@@ -250,21 +215,27 @@ class Entity(BaseModel):
 
     __tablename__ = "entities"
     entity = db.Column(db.String(40), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
 
 
 class SimilarityProcessQueue(BaseModel):
     """Similarity queue model."""
 
     __tablename__ = "similarity_queue"
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
+    )
 
 
 class Similarity(BaseModel):
     """Similarity model."""
 
     __tablename__ = "similarities"
-    source_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    source_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
     related_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"))
 
 
@@ -274,19 +245,40 @@ class JobType(BaseModel):
     __tablename__ = "job_types"
     job = db.Column(db.String(40), nullable=False)
 
+    def __repr__(self):
+        return "Job Type: {}".format(self.job)
+
 
 class JobLock(BaseModel):
     """Job lock model."""
 
     __tablename__ = "joblock"
-    job_type = db.Column(db.Integer, db.ForeignKey("job_types.id", ondelete="CASCADE"), unique=True)
+    job_type = db.Column(
+        db.Integer, db.ForeignKey("job_types.id", ondelete="CASCADE"), unique=True
+    )
     lock_datetime = db.Column(db.DateTime, nullable=False, default=now)
 
     job = db.relationship("JobType", uselist=False, backref="joblock")
 
     def __repr__(self):
-        """String representation."""
-        return "<Job '{}' locked at {}>".format(self.job_type.job, self.lock_datetime)
+        return "Job Lock: {} at {}".format(self.job.job, self.lock_datetime)
+
+
+class Bookmark(BaseModel):
+    """Bookmark model."""
+
+    __tablename__ = "bookmarks"
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
+    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
+
+    user = db.relationship("User", uselist=False, backref="bookmarks")
+    post = db.relationship("Post", uselist=False, backref="bookmarks")
+
+
+db.Index("ix_user_bookmark", Bookmark.user_id, Bookmark.post_id)
 
 
 user_excluded_sources = db.Table(
@@ -306,7 +298,7 @@ user_excluded_categories = db.Table(
 class User(BaseModel):
     """User model."""
 
-    email = db.Column(db.String(255), unique=True)
+    email = db.Column(db.String(255), unique=True, index=True)
     password = db.Column(db.String(255), nullable=True)
     active = db.Column(db.Boolean(), default=True)
     confirmed = db.Column(db.Boolean(), default=False)
@@ -338,10 +330,7 @@ class User(BaseModel):
     @staticmethod
     def get_user_from_identity(identity):
         """Get a user from a JWT."""
-        try:
-            return User.query.filter_by(email=identity).first()
-        except Exception:
-            return None
+        return User.query.filter_by(email=identity).first()
 
     def get_reset_password_token(self):
         """Get a password reset token."""
@@ -374,16 +363,6 @@ class User(BaseModel):
             return None
 
         return User.query.get(id)
-
-    def update_excluded_categories(self, categories):
-        """Update a user's excluded categories."""
-        self.excluded_categories = categories
-        self.save()
-
-    def update_excluded_sources(self, sources):
-        """Update a user's excluded sources."""
-        self.excluded_sources = sources
-        self.save()
 
     def to_dict(self):
         """Return as a dict."""

@@ -34,6 +34,8 @@ EXCLUDES = [
     "CARDINAL",
 ]
 BATCH_SIZE = 500
+TOP_N_ENTITIES = 8
+LOCK_TIMEOUT = 8
 
 
 def clean(text):
@@ -41,7 +43,7 @@ def clean(text):
     text = text.encode("ascii", "ignore").decode("utf-8")
     text = new_line.sub(" ", text)
     text = ws.sub(" ", text)
-    return text
+    return text.strip()
 
 
 def extract(text):
@@ -66,24 +68,32 @@ def extract(text):
     return entities
 
 
-def process_entities():
-    """Process entities."""
-    job_type = JobType.query.filter(JobType.job == 'PROCESS').first()
+def is_locked():
+    """Check if the job is locked."""
+    job_type = JobType.query.filter(JobType.job == "PROCESS").first()
     prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
     if prior_lock is not None:
         lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
-        if lock_datetime >= now() - timedelta(minutes=8):
-            current_app.logger.info("Processing still in progress. Skipping.")
-            return
+        if lock_datetime >= now() - timedelta(minutes=LOCK_TIMEOUT):
+            return True
         else:
             prior_lock.delete()
+
+    return False
+
+
+def process_entities():
+    """Process entities."""
+    if is_locked():
+        current_app.logger.info("Processing still in progress. Skipping.")
+        return
 
     enqueued_posts = [eq.post for eq in EntityProcessQueue.query.all()]
     if len(enqueued_posts) == 0:
         current_app.logger.info("No posts in entity processing queue. Skipping...")
         return
 
-    job_type = JobType.query.filter(JobType.job == 'PROCESS').first()
+    job_type = JobType.query.filter(JobType.job == "PROCESS").first()
     lock = JobLock.create(job=job_type, lock_datetime=now())
 
     current_app.logger.info(
@@ -114,7 +124,7 @@ def process_entities():
             # amount of unusuable entities. Since we use set comparisons for relating posts. we will
             # never relate to the descriptive post. Limit the entities to the top 10 so we have a
             # fighting chance of associating the post.
-            for word, _ in entity_counter.most_common(10):
+            for word, _ in entity_counter.most_common(TOP_N_ENTITIES):
                 post_has_entities = True
                 e = Entity(entity=word, post_id=post.id)
                 db.session.add(e)

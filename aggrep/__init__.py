@@ -26,6 +26,7 @@ jwt = JWTManager()
 
 
 def register_blueprints(app):
+    """Register app blueprints."""
     from aggrep.api.views import api as api_bp
     from aggrep.api.views import app as app_bp
 
@@ -34,9 +35,8 @@ def register_blueprints(app):
 
 
 def register_commands(app):
-    from aggrep.commands import (
-        test, lint, seed, collect, pipeline, process, relate, purge, updatestats,
-    )
+    """Register CLI commands."""
+    from aggrep.commands import test, lint, seed, collect, process, relate, updatestats
 
     app.cli.add_command(test)
     app.cli.add_command(lint)
@@ -44,18 +44,18 @@ def register_commands(app):
     app.cli.add_command(collect)
     app.cli.add_command(process)
     app.cli.add_command(relate)
-    app.cli.add_command(purge)
-    app.cli.add_command(pipeline)
     app.cli.add_command(updatestats)
 
 
 def register_logger(app):
+    """Register application logging."""
     handler = logging.StreamHandler(sys.stdout)
     if not app.logger.handlers:
         app.logger.addHandler(handler)
 
 
 def create_app(config_object=Config):
+    """Create an app from a configuration spec."""
 
     app = Flask(__name__.split(".")[0])
     app.config.from_object(config_object)

@@ -1,9 +1,8 @@
 """Tests for the email module."""
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import pytest
 
-from aggrep import mail
 from aggrep.api.email import send_email
 
 
@@ -11,16 +10,17 @@ from aggrep.api.email import send_email
 class TestEmail(TestCase):
     """Email tests."""
 
-    def test_send_email(self):
+    @mock.patch("aggrep.mail.send_email")
+    def test_send_email(self, mock_mail):
         """Test the send_email function."""
-        with mail.record_messages() as outbox:
-            send_email(
-                dict(
-                    subject="Test Subject",
-                    recipients=["qux@quux.com"],
-                    text_body="test body",
-                    html_body="<b>test body</b>",
-                )
+
+        send_email(
+            dict(
+                subject="Test Subject",
+                recipients=["qux@quux.com"],
+                text_body="test body",
+                html_body="<b>test body</b>",
             )
-        assert len(outbox) == 1
-        assert outbox[0].subject == "Test Subject"
+        )
+
+        assert mock_mail.call_count == 1

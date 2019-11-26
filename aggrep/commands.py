@@ -32,10 +32,12 @@ def test(show_missing, verbose):
     if verbose:
         command_line.append("-v")
 
-    command_line.extend(["--cov-fail-under=80", "--cov=aggrep"])
+    command_line.extend(["--cov=aggrep"])
 
-    if show_missing:
-        command_line.extend(["--cov-report", "term-missing"])
+    if not show_missing:
+        command_line.extend(["--cov-report", "term:skip-covered"])
+    else:
+        command_line.extend(["--cov-report", "term-missing:skip-covered"])
 
     command_line.append("tests/")
 
@@ -135,7 +137,7 @@ def seed():
 @with_appcontext
 def collect(days=1):
     """Collect recent posts."""
-    from aggrep.jobs.collector.collect import collect_posts
+    from aggrep.jobs.collect import collect_posts
 
     collect_posts(days=days)
 
@@ -144,7 +146,7 @@ def collect(days=1):
 @with_appcontext
 def process():
     """Process recent posts."""
-    from aggrep.jobs.processor.process import process_entities
+    from aggrep.jobs.process import process_entities
 
     process_entities()
 
@@ -153,7 +155,7 @@ def process():
 @with_appcontext
 def relate():
     """Relate recent posts."""
-    from aggrep.jobs.relater.relate import process_similarities
+    from aggrep.jobs.relate import process_similarities
 
     process_similarities()
 
@@ -162,29 +164,6 @@ def relate():
 @with_appcontext
 def updatestats():
     """Update post stats."""
-    from aggrep.jobs.post_analytics.ctr import update_stats
+    from aggrep.jobs.ctr import update_ctr
 
-    update_stats()
-
-
-@click.command()
-@with_appcontext
-def purge():
-    """Purge expired posts."""
-    from aggrep.jobs.cleanser.purge import purge_posts
-
-    purge_posts()
-
-
-@click.command()
-@click.option("-d", "--days", default=3, help="Number of days to collect")
-@with_appcontext
-def pipeline(days=1):
-    """Run a full post collection pipeline."""
-    from aggrep.jobs.collector.collect import collect_posts
-    from aggrep.jobs.processor.process import process_entities
-    from aggrep.jobs.relater.relate import process_similarities
-
-    collect_posts(days=days)
-    process_entities()
-    process_similarities()
+    update_ctr()

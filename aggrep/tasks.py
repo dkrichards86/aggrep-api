@@ -4,12 +4,10 @@ from celery.signals import task_postrun
 from celery.utils.log import get_task_logger
 
 from aggrep import celery, db
-from aggrep.jobs.collector.collect import collect_posts
-from aggrep.jobs.processor.process import process_entities
-from aggrep.jobs.relater.relate import process_similarities
-from aggrep.jobs.cleanser.purge import purge_posts
-from aggrep.jobs.post_analytics.ctr import update_stats
-
+from aggrep.jobs.collect import collect_posts
+from aggrep.jobs.ctr import update_ctr
+from aggrep.jobs.process import process_entities
+from aggrep.jobs.relate import process_similarities
 
 logger = get_task_logger(__name__)
 
@@ -33,17 +31,10 @@ def task_process_similarities():
 
 
 @celery.task
-def task_purge_posts():
-    """Purge expired posts."""
-
-    purge_posts()
-
-
-@celery.task
-def task_update_stats():
+def task_update_ctr():
     """Update post stats."""
 
-    update_stats()
+    update_ctr()
 
 
 @task_postrun.connect

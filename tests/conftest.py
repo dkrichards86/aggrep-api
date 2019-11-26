@@ -3,6 +3,9 @@ import logging
 
 import pytest
 
+from aggrep import create_app
+from aggrep import db as _db
+from config import TestingConfig
 from tests.factories import (
     CategoryFactory,
     FeedFactory,
@@ -10,14 +13,12 @@ from tests.factories import (
     SourceFactory,
     UserFactory,
 )
-from aggrep import create_app
-from aggrep import db as _db
 
 
 @pytest.fixture
 def app():
     """Create application for the tests."""
-    _app = create_app("tests.settings")
+    _app = create_app(TestingConfig)
     _app.logger.setLevel(logging.CRITICAL)
     ctx = _app.test_request_context()
     ctx.push()

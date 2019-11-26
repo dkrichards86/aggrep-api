@@ -1,10 +1,13 @@
-"""Test post parsing module."""
-from datetime import date
+"""Post collection unit tests."""
+from datetime import date, timedelta
+from random import randint
 from unittest import TestCase
 
 import pytest
 
-from aggrep.jobs.collector.post_parser import PostParser
+from aggrep.jobs.collect import PostParser, get_due_feeds, is_locked
+from aggrep.models import Category, Feed, JobLock, JobType, Source, Status
+from aggrep.utils import now
 
 
 class FauxFeed:
@@ -134,3 +137,47 @@ class TestPostParser(TestCase):
                     }
                 )
             )
+
+
+@pytest.mark.usefixtures("db")
+class TestCollect:
+    """Collection module tests."""
+
+    def test_is_locked(self):
+        """Test locking."""
+
+        job_type = JobType.query.filter(JobType.job == "COLLECT").first()
+        assert is_locked() is False
+
+        lock = JobLock.create(job=job_type, lock_datetime=now())
+        assert is_locked() is True
+
+        lock.delete()
+        assert is_locked() is False
+
+        lock = JobLock.create(job=job_type, lock_datetime=now() - timedelta(minutes=10))
+        assert is_locked() is False
+
+    def test_due_feeds(self):
+        """Test fetching due feeds."""
+
+        src = Source.create(slug="source", title="Test Source")
+        cat = Category.create(slug="category", title="Test Category")
+
+        due = 0
+        for i in range(8):
+            freq = randint(3, 8)
+            rand = randint(1, 3)
+
+            offset = now() - timedelta(minutes=(2 ** (freq - 1)))
+            if rand > 1:
+                offset = now() - timedelta(minutes=(2 ** freq))
+                due += 1
+
+            feed = Feed.create(source=src, category=cat, url="{}.feed.com".format(i))
+            Status.create(
+                feed_id=feed.id, update_datetime=offset, update_frequency=freq
+            )
+
+        due_feeds = get_due_feeds()
+        assert len(due_feeds) == due

@@ -8,11 +8,11 @@ env.read_env()
 
 
 class Config:
-    """Configuration object for the application."""
+    """Base app configs."""
 
-    ENV = env.str("FLASK_ENV", default="production")
-    DEBUG = ENV == "development"
-    LOG_LEVEL = "info" if ENV == "production" else "debug"
+    DEBUG = False
+    TESTING = False
+    LOG_LEVEL = "info"
 
     SECRET_KEY = env.str("SECRET_KEY")
     BCRYPT_LOG_ROUNDS = 13
@@ -35,7 +35,31 @@ class Config:
     SENDGRID_API_KEY = env.str("SENDGRID_API_KEY")
 
     WTF_CSRF_ENABLED = False
-
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=14)
-
     UI_URL = env.str("UI_URL")
+
+
+class ProductionConfig(Config):
+    """Prod app configs."""
+
+    pass
+
+
+class DevelopmentConfig(Config):
+    """Dev app configs."""
+
+    DEBUG = True
+    LOG_LEVEL = "debug"
+
+
+class TestingConfig(Config):
+    """Testing app configs."""
+
+    TESTING = True
+    DEBUG = True
+    LOG_LEVEL = "debug"
+    SECRET_KEY = "not-so-secret-in-tests"
+    SQLALCHEMY_DATABASE_URI = "sqlite://"
+
+    BCRYPT_LOG_ROUNDS = 4
+    CACHE_TYPE = "null"

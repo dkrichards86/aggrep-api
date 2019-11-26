@@ -1,7 +1,7 @@
 """App views module."""
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
-from flask import Blueprint, jsonify, render_template, request, redirect, current_app
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -23,7 +23,7 @@ from aggrep.api.forms import (
     UpdatePasswordForm,
 )
 from aggrep.models import Bookmark, Category, Feed, Post, PostAction, Source, User
-from aggrep.utils import get_cache_key
+from aggrep.utils import get_cache_key, now
 
 POPULAR = "popular"
 LATEST = "latest"
@@ -41,22 +41,13 @@ def before_request():
         current_user.update(last_seen=datetime.utcnow())
 
 
-@api.errorhandler(405)
-def method_not_allowed(e):
-    return jsonify({"msg": "Method not allowed"}), 405
-
-
-# === Post Routes === #
+# === Route Helpers === #
 
 
 def sort_posts(posts, sort):
     """Sort posts by a predefined format."""
     if sort == POPULAR:
-        posts = posts.order_by(
-            desc(Post.ctr),
-            desc(Post.bookmark_count),
-            desc(Post.published_datetime),
-        )
+        posts = posts.order_by(desc(Post.ctr), desc(Post.published_datetime))
     else:
         posts = posts.order_by(desc(Post.published_datetime))
 
@@ -64,27 +55,30 @@ def sort_posts(posts, sort):
 
 
 def register_impression(post_id):
-    pa = PostAction.query.filter(PostAction.post_id==post_id).first()
-    if not pa:
-        return False
+    """Register post impressions."""
 
+    pa = PostAction.query.filter(PostAction.post_id == post_id).first()
     pa.impressions += 1
     pa.save()
     return True
 
 
 def register_click(post_id):
-    pa = PostAction.query.filter(PostAction.post_id==post_id).first()
-    if not pa:
-        return False
+    """Register post clicks."""
 
+    pa = PostAction.query.filter(PostAction.post_id == post_id).first()
     pa.clicks += 1
     pa.save()
     return True
 
 
+# === Post Routes === #
+
+
 @app.route("/<uid>")
 def follow_redirect(uid):
+    """Follow a post redirect."""
+
     p = Post.from_uid(uid)
     register_click(p.id)
     return redirect(p.link)
@@ -97,7 +91,7 @@ def all_posts():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = datetime.now(timezone.utc) - timedelta(days=2)
+    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -111,8 +105,9 @@ def all_posts():
             sources = [s.id for s in current_user.excluded_sources]
             categories = [c.id for c in current_user.excluded_categories]
             posts = posts.filter(
-                Post.feed.has(Feed.category.has(Category.id.notin_(categories)))
-            ).filter(Post.feed.has(Feed.source.has(Source.id.notin_(sources))))
+                Post.feed.has(Feed.category.has(Category.id.notin_(categories))),
+                Post.feed.has(Feed.source.has(Source.id.notin_(sources))),
+            )
 
         posts = sort_posts(posts, sort)
 
@@ -121,16 +116,11 @@ def all_posts():
         else:
             title = "Latest Posts"
 
-        cached = dict(
-            **Post.to_collection_dict(
-                posts, page, per_page, "api.all_posts"
-            ),
-            title=title
-        )
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=60)
 
-        for item in cached['items']:
-            register_impression(item['id'])
+    for item in cached["items"]:
+        register_impression(item["id"])
 
     return jsonify(**cached), 200
 
@@ -142,7 +132,7 @@ def posts_by_source(source):
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = datetime.now(timezone.utc) - timedelta(days=2)
+    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -171,19 +161,12 @@ def posts_by_source(source):
             title = "Latest Posts by {}".format(src.title)
 
         cached = dict(
-            **Post.to_collection_dict(
-                posts,
-                page,
-                per_page,
-                "api.posts_by_source",
-                source=source,
-            ),
-            title=title
+            **Post.to_collection_dict(posts, page, per_page, source=source), title=title
         )
         cache.set(cache_key, cached, timeout=60)
 
-        for item in cached['items']:
-            register_impression(item['id'])
+    for item in cached["items"]:
+        register_impression(item["id"])
 
     return jsonify(**cached), 200
 
@@ -195,7 +178,7 @@ def posts_by_category(category):
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = datetime.now(timezone.utc) - timedelta(days=2)
+    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -224,19 +207,13 @@ def posts_by_category(category):
             title = "Latest Posts in {}".format(cat.title)
 
         cached = dict(
-            **Post.to_collection_dict(
-                posts,
-                page,
-                per_page,
-                "api.posts_by_category",
-                category=category,
-            ),
-            title=title
+            **Post.to_collection_dict(posts, page, per_page, category=category),
+            title=title,
         )
         cache.set(cache_key, cached, timeout=60)
 
-        for item in cached['items']:
-            register_impression(item['id'])
+    for item in cached["items"]:
+        register_impression(item["id"])
 
     return jsonify(**cached), 200
 
@@ -250,7 +227,6 @@ def similar_posts(uid):
     sort = LATEST
 
     identity = get_jwt_identity()
-    current_user = User.get_user_from_identity(identity)
     cache_key = get_cache_key(
         "similar_posts", identity, page, per_page, sort, route_arg=uid
     )
@@ -266,19 +242,12 @@ def similar_posts(uid):
         title = "Similar Posts"
 
         cached = dict(
-            **Post.to_collection_dict(
-                posts,
-                page,
-                per_page,
-                "api.similar_posts",
-                uid=uid,
-            ),
-            title=title
+            **Post.to_collection_dict(posts, page, per_page, uid=uid), title=title
         )
         cache.set(cache_key, cached, timeout=180)
 
-        for item in cached['items']:
-            register_impression(item['id'])
+    for item in cached["items"]:
+        register_impression(item["id"])
 
     return jsonify(**cached), 200
 
@@ -295,11 +264,15 @@ def bookmarked_posts():
         post_ids = [b.post.id for b in current_user.bookmarks]
         posts = Post.query.filter(Post.id.in_(post_ids))
 
-        return jsonify(
-            title="Bookmarked Posts",
-            **Post.to_collection_dict(
-                posts, page, per_page, "api.bookmarked_posts"
-            )
+        for pid in post_ids:
+            register_impression(pid)
+
+        return (
+            jsonify(
+                **Post.to_collection_dict(posts, page, per_page),
+                title="Bookmarked Posts",
+            ),
+            200,
         )
 
 
@@ -310,26 +283,33 @@ def bookmarked_post_ids():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if request.method == "GET":
-        return jsonify(
-            bookmarks=[b.post.uid for b in current_user.bookmarks]
-        )
+        return jsonify(bookmarks=[b.post.uid for b in current_user.bookmarks]), 200
     elif request.method == "POST":
         payload = request.get_json() or {}
         uid = payload.get("uid")
 
         if uid is None:
-            return jsonify(msg="No post ID provided."), 400
+            return jsonify(msg="No post UID provided."), 400
 
         post = Post.from_uid(uid)
         if post is None:
-            return jsonify(msg="Post ID is invalid."), 400
+            return jsonify(msg="Post UID is invalid."), 400
 
         is_bookmarked = Bookmark.query.filter_by(
             user_id=current_user.id, post_id=post.id
         ).first()
         if not is_bookmarked:
             Bookmark.create(user_id=current_user.id, post_id=post.id)
-        return jsonify(dict(msg="Bookmark saved!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
+        return (
+            jsonify(
+                dict(
+                    bookmarks=[b.post.uid for b in current_user.bookmarks],
+                    msg="Bookmark saved!",
+                )
+            ),
+            200,
+        )
+
     elif request.method == "DELETE":
         payload = request.get_json() or {}
         uid = payload.get("uid")
@@ -339,7 +319,15 @@ def bookmarked_post_ids():
             user_id=current_user.id, post_id=post.id
         ).first()
         instance.delete()
-        return jsonify(dict(msg="Bookmark removed!", bookmarks=[b.post.uid for b in current_user.bookmarks])), 200
+        return (
+            jsonify(
+                dict(
+                    bookmarks=[b.post.uid for b in current_user.bookmarks],
+                    msg="Bookmark removed!",
+                )
+            ),
+            200,
+        )
 
 
 # === Taxonomy Routes === #
@@ -348,18 +336,26 @@ def bookmarked_post_ids():
 @api.route("/sources")
 def sources():
     """Get all sources."""
-    return jsonify(
-        sources=[s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()]
+    return (
+        jsonify(
+            sources=[
+                s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()
+            ]
+        ),
+        200,
     )
 
 
 @api.route("/categories")
 def categories():
     """Get all categories."""
-    return jsonify(
-        categories=[
-            c.to_dict() for c in Category.query.order_by(Category.id.asc()).all()
-        ]
+    return (
+        jsonify(
+            categories=[
+                c.to_dict() for c in Category.query.order_by(Category.id.asc()).all()
+            ]
+        ),
+        200,
     )
 
 
@@ -466,7 +462,7 @@ def auth_login():
 
 
 @api.route("/auth/register", methods=["POST"])
-def register():
+def auth_register():
     """Register a new user."""
     if get_jwt_identity():
         return jsonify(dict(msg="You are already registered.")), 400
@@ -483,12 +479,16 @@ def register():
             subject="[Aggregate Report] Welcome!",
             recipients=[user.email],
             text_body=render_template(
-                "email/welcome.txt", user=user, token=token,
-                ui_url=current_app.config['UI_URL'],
+                "email/welcome.txt",
+                user=user,
+                token=token,
+                ui_url=current_app.config["UI_URL"],
             ),
             html_body=render_template(
-                "email/welcome.html", user=user, token=token,
-                ui_url=current_app.config['UI_URL'],
+                "email/welcome.html",
+                user=user,
+                token=token,
+                ui_url=current_app.config["UI_URL"],
             ),
         )
         send_email(email_data)
@@ -509,7 +509,7 @@ def register():
 
 @api.route("/auth/email/update", methods=["POST"])
 @jwt_required
-def email_update():
+def auth_email_update():
     """Update an email address."""
     current_user = User.get_user_from_identity(get_jwt_identity())
 
@@ -525,12 +525,16 @@ def email_update():
             subject="[Aggregate Report] Confirm your email!",
             recipients=[current_user.email],
             text_body=render_template(
-                "email/confirm_email.txt", user=current_user, token=token,
-                ui_url=current_app.config['UI_URL'],
+                "email/confirm_email.txt",
+                user=current_user,
+                token=token,
+                ui_url=current_app.config["UI_URL"],
             ),
             html_body=render_template(
-                "email/confirm_email.html", user=current_user, token=token,
-                ui_url=current_app.config['UI_URL'],
+                "email/confirm_email.html",
+                user=current_user,
+                token=token,
+                ui_url=current_app.config["UI_URL"],
             ),
         )
         send_email(email_data)
@@ -553,7 +557,7 @@ def email_update():
 
 @api.route("/auth/email/confirm/request", methods=["POST"])
 @jwt_required
-def email_confirm_request():
+def auth_email_confirm_request():
     """Request an email confirmation token."""
     current_user = User.get_user_from_identity(get_jwt_identity())
 
@@ -563,18 +567,21 @@ def email_confirm_request():
     if current_user.confirmed:
         return jsonify(dict(msg="User is already confirmed")), 200
 
-
     token = current_user.get_email_confirm_token()
     email_data = dict(
         subject="[Aggregate Report] Confirm your email!",
         recipients=[current_user.email],
         text_body=render_template(
-            "email/confirm_email.txt", user=current_user, token=token,
-            ui_url=current_app.config['UI_URL'],
+            "email/confirm_email.txt",
+            user=current_user,
+            token=token,
+            ui_url=current_app.config["UI_URL"],
         ),
         html_body=render_template(
-            "email/confirm_email.html", user=current_user, token=token,
-            ui_url=current_app.config['UI_URL'],
+            "email/confirm_email.html",
+            user=current_user,
+            token=token,
+            ui_url=current_app.config["UI_URL"],
         ),
     )
     send_email(email_data)
@@ -583,7 +590,7 @@ def email_confirm_request():
 
 
 @api.route("/auth/email/confirm/token", methods=["POST"])
-def email_confirm_token():
+def auth_email_confirm_token():
     """Verify an email confirmation token and update the model."""
     if not request.is_json:
         return jsonify(dict(msg="Invalid request.")), 400
@@ -609,7 +616,7 @@ def email_confirm_token():
 
 @api.route("/auth/password/update", methods=["POST"])
 @jwt_required
-def update_password():
+def auth_password_update():
     """Update a user's password."""
     current_user = User.get_user_from_identity(get_jwt_identity())
 
@@ -627,12 +634,14 @@ def update_password():
             subject="[Aggregate Report] Your password has been updated",
             recipients=[current_user.email],
             text_body=render_template(
-                "email/password_updated.txt", user=current_user,
-                ui_url=current_app.config['UI_URL'],
+                "email/password_updated.txt",
+                user=current_user,
+                ui_url=current_app.config["UI_URL"],
             ),
             html_body=render_template(
-                "email/password_updated.html", user=current_user,
-                ui_url=current_app.config['UI_URL'],
+                "email/password_updated.html",
+                user=current_user,
+                ui_url=current_app.config["UI_URL"],
             ),
         )
         send_email(email_data)
@@ -648,7 +657,7 @@ def update_password():
 
 
 @api.route("/auth/password/reset", methods=["POST"])
-def reset_password():
+def auth_password_reset():
     """Request password reset link."""
     if not request.is_json:
         return jsonify(dict(msg="Invalid request.")), 400
@@ -662,12 +671,16 @@ def reset_password():
                 subject="[Aggregate Report] Reset your password",
                 recipients=[user.email],
                 text_body=render_template(
-                    "email/reset_instructions.txt", user=user, token=token,
-                    ui_url=current_app.config['UI_URL'],
+                    "email/reset_instructions.txt",
+                    user=user,
+                    token=token,
+                    ui_url=current_app.config["UI_URL"],
                 ),
                 html_body=render_template(
-                    "email/reset_instructions.html", user=user, token=token,
-                    ui_url=current_app.config['UI_URL'],
+                    "email/reset_instructions.html",
+                    user=user,
+                    token=token,
+                    ui_url=current_app.config["UI_URL"],
                 ),
             )
             send_email(email_data)
@@ -689,7 +702,7 @@ def reset_password():
 
 
 @api.route("/auth/password/reset/confirm", methods=["POST"])
-def reset_password_confirm():
+def auth_password_reset_confirm():
     """Reset a password from reset link."""
     if not request.is_json:
         return jsonify(dict(msg="Invalid request.")), 400
@@ -706,12 +719,14 @@ def reset_password_confirm():
             subject="[Aggregate Report] Your password has been reset",
             recipients=[user.email],
             text_body=render_template(
-                "email/password_updated.txt", user=user,
-                ui_url=current_app.config['UI_URL'],
+                "email/password_updated.txt",
+                user=user,
+                ui_url=current_app.config["UI_URL"],
             ),
             html_body=render_template(
-                "email/password_updated.html", user=user,
-                ui_url=current_app.config['UI_URL'],
+                "email/password_updated.html",
+                user=user,
+                ui_url=current_app.config["UI_URL"],
             ),
         )
         send_email(email_data)

@@ -1,25 +1,93 @@
 """Post collection job."""
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
+from time import mktime
 
 import feedparser
+from bs4 import BeautifulSoup
 from flask import current_app
 
 from aggrep import db
-from aggrep.jobs.collector.post_parser import PostParser
-from aggrep.models import EntityProcessQueue, Feed, JobLock, JobType, Post, PostAction, Source, Status
+from aggrep.models import (
+    EntityProcessQueue,
+    Feed,
+    JobLock,
+    JobType,
+    Post,
+    PostAction,
+    Source,
+    Status,
+)
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 1  # 2**1 minutes
 MAX_UPDATE_FREQ = 8  # 2**8 minutes
+LOCK_TIMEOUT = 8
+
+class PostParser:
+    """PostParser accepts a `feedparser` post object and normalizes it for ingestion.
+
+    See: https://pythonhosted.org/feedparser/index.html
+    """
+
+    def __init__(self, post):
+        """Initialize the post parser."""
+        self.post = post
+
+        self.title = self.get_title()
+        self.link = self.get_link()
+        self.description = self.get_description()
+        self.datetime = self.get_datetime()
+
+    def get_datetime(self):
+        """Get a datetime from the post."""
+        if hasattr(self.post, "published_parsed"):
+            try:
+                return datetime.fromtimestamp(mktime(self.post.published_parsed))
+            except TypeError:
+                raise AttributeError("Unable to parse datetime")
+        else:
+            raise AttributeError("No pubished datetime provided")
+
+    def get_description(self):
+        """Pull a description from the feed.
+
+        In the case of RSS feeds, this is accessible in the 'description' attribute. In Atom feeds,
+        this is pulled from the 'summary' attribute. Once we have a description, use BeautifulSoup
+        to strip markup, leaving raw text. Finally, strip all trailing whitespace.
+        """
+        if hasattr(self.post, "description") and self.post.description:
+            # RSS feed
+            return BeautifulSoup(self.post.description, "lxml").get_text(
+                " ", strip=True
+            )
+        elif hasattr(self.post, "summary") and self.post.summary:
+            # Atom feed
+            return BeautifulSoup(self.post.summary, "lxml").get_text(" ", strip=True)
+        else:
+            return ""
+
+    def get_link(self):
+        """Treat post link as an attribute."""
+        if hasattr(self.post, "link") and self.post.link:
+            return self.post.link
+        else:
+            raise AttributeError
+
+    def get_title(self):
+        """Treat post title as an attribute."""
+        if hasattr(self.post, "title") and self.post.title:
+            return self.post.title
+        else:
+            raise AttributeError
 
 
 def is_locked():
     """Check if the job is locked."""
-    job_type = JobType.query.filter(JobType.job == 'COLLECT').first()
+    job_type = JobType.query.filter(JobType.job == "COLLECT").first()
     prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
     if prior_lock is not None:
         lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
-        if lock_datetime >= now() - timedelta(minutes=8):
+        if lock_datetime >= now() - timedelta(minutes=LOCK_TIMEOUT):
             return True
         else:
             prior_lock.delete()
@@ -60,21 +128,17 @@ def collect_posts(days=1):
         current_app.logger.info("No dirty feeds to collect. Skipping.")
         return
 
-    job_type = JobType.query.filter(JobType.job == 'COLLECT').first()
+    job_type = JobType.query.filter(JobType.job == "COLLECT").first()
     lock = JobLock.create(job=job_type, lock_datetime=now())
     current_app.logger.info(
         "Collecting new posts from {} dirty feeds.".format(len(due_feeds))
     )
 
-    post_cache = dict()
     collection_offset = now() - timedelta(days=days)
-    archival_offset = now() - timedelta(days=days * 2)
+    archival_offset = now() - timedelta(days=days + 1)
 
     for feed in due_feeds:
-        link_urls = post_cache.get(feed.source.id, None)
-        if link_urls is None:
-            link_urls = get_source_cache(feed, archival_offset)
-            post_cache[feed.source.id] = link_urls
+        link_urls = get_source_cache(feed, archival_offset)
 
         # Get the actual feed data
         feed_data = feedparser.parse(feed.url)

@@ -46,7 +46,7 @@ services:
   worker:
     image: aggrep_backend
     container_name: aggrep_worker
-    command: ["./wait-for-postgres.sh", "celery -A celery_worker:celery worker --beat --loglevel=info"]
+    command: ["./wait-for-postgres.sh", "celery -A celery_worker:celery worker --beat --loglevel=info --concurrency 2"]
     environment:
       PYTHONUNBUFFERED: 1
       PGPASSWORD: aggrep
