@@ -75,7 +75,7 @@ class Category(BaseModel):
 
     def to_dict(self):
         """Return as a dict."""
-        return dict(slug=self.slug, title=self.title)
+        return dict(id=self.id, slug=self.slug, title=self.title)
 
     def __repr__(self):
         """String representation."""
@@ -91,7 +91,7 @@ class Source(BaseModel):
 
     def to_dict(self):
         """Return as a dict."""
-        return dict(slug=self.slug, title=self.title)
+        return dict(id=self.id, slug=self.slug, title=self.title)
 
     def __repr__(self):
         """String representation."""
@@ -134,7 +134,7 @@ class Post(BaseModel, PaginatedAPIMixin):
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"))
     title = db.Column(db.String(255), nullable=False)
     desc = db.Column(db.Text())
-    link = db.Column(db.String(255), nullable=False, unique=True)
+    link = db.Column(db.String(255), nullable=False)
     published_datetime = db.Column(db.DateTime, nullable=False, default=now, index=True)
     ingested_datetime = db.Column(db.DateTime, nullable=False, default=now)
     actions = db.relationship("PostAction", uselist=False, backref="posts")
