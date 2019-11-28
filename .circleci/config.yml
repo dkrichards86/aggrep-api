@@ -10,7 +10,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key:
+          keys:
             - v1-dependencies-{{ checksum "requirements.txt" }}
             - v1-dependencies-
       - run:
@@ -25,10 +25,12 @@ jobs:
           key: 
             - v1-dependencies-{{ checksum "requirements.txt" }}
       - run:
+          name: Lint
           command: |
             . venv/bin/activate
             flask lint
       - run:
+          name: Test
           command: |
             . venv/bin/activate
             flask test
