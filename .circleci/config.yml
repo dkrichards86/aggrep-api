@@ -1,0 +1,45 @@
+version: 2.1
+orbs:
+  heroku: circleci/heroku@1.0.0
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      FLASK_APP: autoapp.py
+    steps:
+      - checkout
+      - restore_cache:
+          key:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: Install Python deps in a venv
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+      - save_cache:
+          paths:
+            - "venv"
+          key: 
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          command: |
+            . venv/bin/activate
+            flask lint
+      - run:
+          command: |
+            . venv/bin/activate
+            flask test
+workflows:
+  version: 2
+  publish:
+    jobs:
+      - build
+      - heroku/deploy-via-git
+          requires:
+            - build
+          filters:
+            branches:
+              only: master

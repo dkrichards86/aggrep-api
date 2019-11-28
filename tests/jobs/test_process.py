@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from aggrep.jobs.process import clean, extract, process_entities
+from aggrep.jobs.process import Processor, clean, extract
 from aggrep.models import EntityProcessQueue, JobLock, JobType
 from aggrep.utils import now
 from tests.factories import PostFactory
@@ -73,12 +73,13 @@ class TestProcess:
 
     def test_process_entities(self):
         """Test processing."""
+        processor = Processor()
 
         for instance in PostFactory.create_batch(20):
             instance.save()
             EntityProcessQueue.create(post_id=instance.id)
 
-        process_entities()
+        processor.run()
 
         assert EntityProcessQueue.query.count() == 0
         job_type = JobType.query.filter(JobType.job == "PROCESS").first()
@@ -86,8 +87,8 @@ class TestProcess:
 
     def test_process_entities_no_posts(self):
         """Test processing with no posts."""
-
-        process_entities()
+        processor = Processor()
+        processor.run()
 
         assert EntityProcessQueue.query.count() == 0
         job_type = JobType.query.filter(JobType.job == "PROCESS").first()
@@ -95,6 +96,7 @@ class TestProcess:
 
     def test_process_entities_prior_lock(self):
         """Test processing with existing lock."""
+        processor = Processor()
 
         for instance in PostFactory.create_batch(20):
             instance.save()
@@ -103,13 +105,14 @@ class TestProcess:
         job_type = JobType.query.filter(JobType.job == "PROCESS").first()
         JobLock.create(job=job_type)
 
-        process_entities()
+        processor.run()
 
         assert EntityProcessQueue.query.count() == 20
         assert JobLock.query.filter(JobLock.job == job_type).first() is not None
 
     def test_process_entities_expired_lock(self):
         """Test processing with expired lock."""
+        processor = Processor()
 
         for instance in PostFactory.create_batch(20):
             instance.save()
@@ -118,7 +121,7 @@ class TestProcess:
         job_type = JobType.query.filter(JobType.job == "PROCESS").first()
         JobLock.create(job=job_type, lock_datetime=now() - timedelta(minutes=10))
 
-        process_entities()
+        processor.run()
 
         assert EntityProcessQueue.query.count() == 0
         assert JobLock.query.filter(JobLock.job == job_type).first() is None

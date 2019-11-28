@@ -5,7 +5,7 @@ from random import randint
 
 import pytest
 
-from aggrep.jobs.ctr import get_due_posts, is_locked, update_ctr
+from aggrep.jobs.ctr import CTR
 from aggrep.models import JobLock, JobType, Post
 from aggrep.utils import now
 from tests.factories import PostFactory
@@ -15,24 +15,10 @@ from tests.factories import PostFactory
 class TestCTR:
     """Click-through module tests."""
 
-    def test_is_locked(self):
-        """Test locking."""
-
-        job_type = JobType.query.filter(JobType.job == "ANALYZE").first()
-        assert is_locked() is False
-
-        lock = JobLock.create(job=job_type, lock_datetime=now())
-        assert is_locked() is True
-
-        lock.delete()
-        assert is_locked() is False
-
-        lock = JobLock.create(job=job_type, lock_datetime=now() - timedelta(minutes=10))
-        assert is_locked() is False
-
     def test_get_due_posts(self):
         """Test finding new posts."""
 
+        ctr = CTR()
         due_posts = 0
         for instance in PostFactory.create_batch(20):
             instance.save()
@@ -43,11 +29,12 @@ class TestCTR:
             if _click > 0 and _impression > 0:
                 due_posts += 1
 
-        assert len(get_due_posts()) == due_posts
+        assert len(ctr.get_due_posts()) == due_posts
 
     def test_update_ctr(self):
         """Test CTR update function."""
 
+        ctr = CTR()
         clicks = []
         impressions = []
         for instance in PostFactory.create_batch(20):
@@ -62,7 +49,7 @@ class TestCTR:
         for post in Post.query.all():
             assert post.actions.ctr == 0
 
-        update_ctr()
+        ctr.run()
 
         for i, post in enumerate(Post.query.all()):
             try:
@@ -74,6 +61,7 @@ class TestCTR:
     def test_process_entities_prior_lock(self):
         """Test processing with existing lock."""
 
+        ctr = CTR()
         job_type = JobType.query.filter(JobType.job == "ANALYZE").first()
 
         clicks = []
@@ -92,7 +80,7 @@ class TestCTR:
 
         JobLock.create(job=job_type)
 
-        update_ctr()
+        ctr.run()
 
         for post in Post.query.all():
             assert post.actions.ctr == 0
@@ -102,6 +90,7 @@ class TestCTR:
     def test_process_entities_expired_lock(self):
         """Test processing with expired lock."""
 
+        ctr = CTR()
         job_type = JobType.query.filter(JobType.job == "ANALYZE").first()
 
         clicks = []
@@ -120,7 +109,7 @@ class TestCTR:
 
         JobLock.create(job=job_type, lock_datetime=now() - timedelta(minutes=10))
 
-        update_ctr()
+        ctr.run()
 
         for i, post in enumerate(Post.query.all()):
             try:

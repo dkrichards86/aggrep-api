@@ -246,6 +246,7 @@ class JobType(BaseModel):
     job = db.Column(db.String(40), nullable=False)
 
     def __repr__(self):
+        """String representation."""
         return "Job Type: {}".format(self.job)
 
 
@@ -261,6 +262,7 @@ class JobLock(BaseModel):
     job = db.relationship("JobType", uselist=False, backref="joblock")
 
     def __repr__(self):
+        """String representation."""
         return "Job Lock: {} at {}".format(self.job.job, self.lock_datetime)
 
 

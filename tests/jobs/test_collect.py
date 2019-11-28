@@ -5,9 +5,10 @@ from unittest import TestCase
 
 import pytest
 
-from aggrep.jobs.collect import PostParser, get_due_feeds, is_locked
-from aggrep.models import Category, Feed, JobLock, JobType, Source, Status
+from aggrep.jobs.collect import Collector, PostParser
+from aggrep.models import Category, Feed, Source, Status
 from aggrep.utils import now
+from tests.factories import PostFactory
 
 
 class FauxFeed:
@@ -143,21 +144,6 @@ class TestPostParser(TestCase):
 class TestCollect:
     """Collection module tests."""
 
-    def test_is_locked(self):
-        """Test locking."""
-
-        job_type = JobType.query.filter(JobType.job == "COLLECT").first()
-        assert is_locked() is False
-
-        lock = JobLock.create(job=job_type, lock_datetime=now())
-        assert is_locked() is True
-
-        lock.delete()
-        assert is_locked() is False
-
-        lock = JobLock.create(job=job_type, lock_datetime=now() - timedelta(minutes=10))
-        assert is_locked() is False
-
     def test_due_feeds(self):
         """Test fetching due feeds."""
 
@@ -179,5 +165,22 @@ class TestCollect:
                 feed_id=feed.id, update_datetime=offset, update_frequency=freq
             )
 
-        due_feeds = get_due_feeds()
-        assert len(due_feeds) == due
+        collector = Collector()
+        collector.get_due_feeds()
+        assert len(collector.due_feeds) == due
+
+    def test_get_source_posts(self):
+        """Test getting posts from a particular source."""
+        src = Source.create(slug="source", title="Test Source")
+        cat = Category.create(slug="category", title="Test Category")
+        feed = Feed.create(source=src, category=cat, url="feed.com")
+
+        for i, instance in enumerate(PostFactory.create_batch(25)):
+            if i % 5 == 0:
+                instance.feed = feed
+            instance.save()
+
+        collector = Collector()
+        posts = collector.get_source_posts(src)
+        assert type(posts) == set
+        assert len(posts) == 5

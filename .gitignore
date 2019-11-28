@@ -57,3 +57,6 @@ celerybeat.pid
 env/
 venv/
 ENV/
+
+# Editors 
+.vscode/

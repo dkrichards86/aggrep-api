@@ -2,20 +2,13 @@
 import re
 import string
 from collections import Counter
-from datetime import timedelta, timezone
 
 import spacy
 from flask import current_app
 
 from aggrep import db
-from aggrep.models import (
-    Entity,
-    EntityProcessQueue,
-    JobLock,
-    JobType,
-    SimilarityProcessQueue,
-)
-from aggrep.utils import now
+from aggrep.jobs.base import Job
+from aggrep.models import Entity, EntityProcessQueue, SimilarityProcessQueue
 
 punct_table = str.maketrans(dict.fromkeys(string.punctuation))
 new_line = re.compile(r"(/\n)")
@@ -35,7 +28,6 @@ EXCLUDES = [
 ]
 BATCH_SIZE = 500
 TOP_N_ENTITIES = 8
-LOCK_TIMEOUT = 8
 
 
 def clean(text):
@@ -68,45 +60,20 @@ def extract(text):
     return entities
 
 
-def is_locked():
-    """Check if the job is locked."""
-    job_type = JobType.query.filter(JobType.job == "PROCESS").first()
-    prior_lock = JobLock.query.filter(JobLock.job == job_type).first()
-    if prior_lock is not None:
-        lock_datetime = prior_lock.lock_datetime.replace(tzinfo=timezone.utc)
-        if lock_datetime >= now() - timedelta(minutes=LOCK_TIMEOUT):
-            return True
-        else:
-            prior_lock.delete()
+class Processor(Job):
+    """Post processor job."""
 
-    return False
+    identifier = "PROCESS"
+    lock_timeout = 8
 
+    def get_enqueued_posts(self):
+        """Get enqueued posts."""
+        return [eq.post for eq in EntityProcessQueue.query.all()]
 
-def process_entities():
-    """Process entities."""
-    if is_locked():
-        current_app.logger.info("Processing still in progress. Skipping.")
-        return
-
-    enqueued_posts = [eq.post for eq in EntityProcessQueue.query.all()]
-    if len(enqueued_posts) == 0:
-        current_app.logger.info("No posts in entity processing queue. Skipping...")
-        return
-
-    job_type = JobType.query.filter(JobType.job == "PROCESS").first()
-    lock = JobLock.create(job=job_type, lock_datetime=now())
-
-    current_app.logger.info(
-        "Processing {} posts in entity queue.".format(len(enqueued_posts))
-    )
-    new_entities = 0
-
-    start = 0
-    while start < len(enqueued_posts):
-        end = start + BATCH_SIZE
-        batch = enqueued_posts[start:end]
+    def process_batch(self, batch):
+        """Process a batch of posts."""
         post_ids = []
-
+        new_entities = 0
         for post in batch:
             post_ids.append(post.id)
             post_has_entities = False
@@ -142,13 +109,46 @@ def process_entities():
             db.session.commit()
         except Exception:
             db.session.rollback()
-            lock.delete()
+            self.lock.remove()
             raise
 
-        start = end
+        return new_entities
 
-    current_app.logger.info("Unlocking processor.")
-    lock.delete()
+    def run(self):
+        """Process entities."""
+        if self.lock.is_locked():
+            if not self.lock.is_expired():
+                current_app.logger.info("Processing still in progress. Skipping.")
+                return
+            else:
+                self.lock.remove()
 
-    if new_entities > 0:
-        current_app.logger.info("Added {} entities.".format(new_entities))
+        enqueued_posts = self.get_enqueued_posts()
+        if len(enqueued_posts) == 0:
+            current_app.logger.info("No posts in entity processing queue. Skipping...")
+            return
+
+        self.lock.create()
+        current_app.logger.info(
+            "Processing {} posts in entity queue.".format(len(enqueued_posts))
+        )
+
+        new_entities = 0
+        start = 0
+        while start < len(enqueued_posts):
+            end = start + BATCH_SIZE
+            batch = enqueued_posts[start:end]
+            new_entities += self.process_batch(batch)
+            start = end
+
+        current_app.logger.info("Unlocking processor.")
+        self.lock.remove()
+
+        if new_entities > 0:
+            current_app.logger.info("Added {} entities.".format(new_entities))
+
+
+def process_entities():
+    """Process entities."""
+    processor = Processor()
+    processor.run()

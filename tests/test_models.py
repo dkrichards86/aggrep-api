@@ -99,7 +99,10 @@ class TestCategory:
     def test_to_dict(self):
         """Write a category to a dict."""
         instance = Category.create(slug="slug", title="title")
-        assert instance.to_dict() == dict(slug="slug", title="title")
+
+        as_dict = instance.to_dict()
+        assert as_dict["slug"] == "slug"
+        assert as_dict["title"] == "title"
 
 
 @pytest.mark.usefixtures("db")
@@ -125,7 +128,9 @@ class TestSource:
     def test_to_dict(self):
         """Write a source to a dict."""
         instance = Source.create(slug="slug", title="title")
-        assert instance.to_dict() == dict(slug="slug", title="title")
+        as_dict = instance.to_dict()
+        assert as_dict["slug"] == "slug"
+        assert as_dict["title"] == "title"
 
 
 @pytest.mark.usefixtures("db")
