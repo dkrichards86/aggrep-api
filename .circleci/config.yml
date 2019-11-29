@@ -7,6 +7,7 @@ jobs:
       - image: circleci/python:3.6
     environment:
       FLASK_APP: autoapp.py
+      FLASK_ENV: production
     steps:
       - checkout
       - restore_cache:

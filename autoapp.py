@@ -7,7 +7,7 @@ from config import DevelopmentConfig, ProductionConfig
 env = Env()
 env.read_env()
 
-environment = env.str("FLASK_ENV")
+environment = env.str("FLASK_ENV", "production")
 
 config = ProductionConfig
 if environment == "development":
