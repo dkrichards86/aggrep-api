@@ -34,12 +34,19 @@ jobs:
           command: |
             . venv/bin/activate
             flask test
+  deploy:
+    executor: heroku/default
+    steps:
+      - checkout
+      - heroku/install
+      - heroku/deploy-via-git
+
 workflows:
   version: 2
   publish:
     jobs:
       - build
-      - heroku/deploy-via-git
+      - deploy:
           requires:
             - build
           filters:
