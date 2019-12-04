@@ -178,6 +178,7 @@ class Post(BaseModel, PaginatedAPIMixin):
             uid=self.uid,
             title=self.title,
             link=url_for("app.follow_redirect", uid=self.uid, _external=True),
+            post_url=self.link,
             similar_count=len(self.similar_posts),
             feed=self.feed.to_dict(),
             published_datetime=self.published_datetime,
