@@ -44,15 +44,15 @@ class Relater(Job):
             entities = [e.entity for e in post.entities]
             entity_set = set(entities)
 
-            intersecting_post_ids = set()
+            unioned_post_ids = set()
             for e in entities:
                 cached = self.entity_cache.get(e)
                 if cached is None:
                     continue
-                intersecting_post_ids |= self.entity_cache[e]
+                unioned_post_ids |= self.entity_cache[e]
 
             keyworded_posts = Post.query.filter(
-                Post.id.in_(list(intersecting_post_ids))
+                Post.id.in_(list(unioned_post_ids))
             ).all()
 
             seen_post_ids = set()
