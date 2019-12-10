@@ -1,7 +1,6 @@
 """Entity processing job."""
 import re
 import string
-from collections import Counter
 
 import spacy
 from flask import current_app
@@ -26,8 +25,7 @@ EXCLUDES = [
     "ORDINAL",
     "CARDINAL",
 ]
-BATCH_SIZE = 500
-TOP_N_ENTITIES = 8
+BATCH_SIZE = 250
 
 
 def clean(text):
@@ -82,16 +80,7 @@ class Processor(Job):
                 continue
 
             post_doc = extract(clean("{}. {}".format(post.title, post.desc)))
-            entity_counter = Counter()
             for word in post_doc:
-                entity_counter[word] += 1
-
-            # Most feed descriptions are summaries of the article. In some feeds though, the
-            # description is the article itself. In these cases, we will end up with a significant
-            # amount of unusuable entities. Since we use set comparisons for relating posts. we will
-            # never relate to the descriptive post. Limit the entities to the top 10 so we have a
-            # fighting chance of associating the post.
-            for word, _ in entity_counter.most_common(TOP_N_ENTITIES):
                 post_has_entities = True
                 e = Entity(entity=word, post_id=post.id)
                 db.session.add(e)
