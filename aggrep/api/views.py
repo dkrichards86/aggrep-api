@@ -22,7 +22,7 @@ from aggrep.api.forms import (
     UpdateEmailForm,
     UpdatePasswordForm,
 )
-from aggrep.models import Bookmark, Category, Feed, Post, PostAction, Source, User
+from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source, User
 from aggrep.utils import get_cache_key, now
 
 POPULAR = "popular"
@@ -329,6 +329,54 @@ def bookmarked_post_ids():
             200,
         )
 
+
+@api.route("/views", methods=["GET", "POST"])
+@jwt_required
+def viewed_posts():
+    """Manage a user's viewed posts."""
+    current_user = User.get_user_from_identity(get_jwt_identity())
+
+    if request.method == "GET":
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+
+        post_ids = [b.post.id for b in current_user.post_views][-10:]
+        posts = Post.query.filter(Post.id.in_(post_ids))
+
+        for pid in post_ids:
+            register_impression(pid)
+
+        return (
+            jsonify(
+                **Post.to_collection_dict(posts, page, per_page),
+                title="Recently Viewed Posts",
+            ),
+            200,
+        )
+    elif request.method == "POST":
+        payload = request.get_json() or {}
+        uid = payload.get("uid")
+
+        if uid is None:
+            return jsonify(msg="No post UID provided."), 400
+
+        post = Post.from_uid(uid)
+        if post is None:
+            return jsonify(msg="Post UID is invalid."), 400
+
+        is_viewed = PostView.query.filter_by(
+            user_id=current_user.id, post_id=post.id
+        ).first()
+        if not is_viewed:
+            PostView.create(user_id=current_user.id, post_id=post.id)
+        return (
+            jsonify(
+                dict(
+                    msg="View saved.",
+                )
+            ),
+            200,
+        )
 
 # === Taxonomy Routes === #
 
