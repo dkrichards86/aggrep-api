@@ -11,8 +11,8 @@ from aggrep.jobs.base import Job
 from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, Status
 from aggrep.utils import now
 
-MIN_UPDATE_FREQ = 1  # 2**1 minutes
-MAX_UPDATE_FREQ = 8  # 2**8 minutes
+MIN_UPDATE_FREQ = 1  # 2**1 minutes (2)
+MAX_UPDATE_FREQ = 6  # 2**6 minutes (64)
 
 
 class PostParser:
