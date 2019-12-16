@@ -22,9 +22,19 @@ from aggrep.api.forms import (
     UpdateEmailForm,
     UpdatePasswordForm,
 )
-from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source, User
+from aggrep.models import (
+    Bookmark,
+    Category,
+    Feed,
+    Post,
+    PostAction,
+    PostView,
+    Source,
+    User,
+)
 from aggrep.utils import get_cache_key, now
 
+N_RECENT_POSTS = 10
 POPULAR = "popular"
 LATEST = "latest"
 
@@ -337,10 +347,7 @@ def viewed_posts():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if request.method == "GET":
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 20, type=int)
-
-        post_ids = [b.post.id for b in current_user.post_views][-10:]
+        post_ids = [b.post.id for b in current_user.post_views][-N_RECENT_POSTS:]
         posts = Post.query.filter(Post.id.in_(post_ids))
 
         for pid in post_ids:
@@ -348,7 +355,7 @@ def viewed_posts():
 
         return (
             jsonify(
-                **Post.to_collection_dict(posts, page, per_page),
+                **Post.to_collection_dict(posts, 1, N_RECENT_POSTS),
                 title="Recently Viewed Posts",
             ),
             200,
@@ -369,14 +376,8 @@ def viewed_posts():
         ).first()
         if not is_viewed:
             PostView.create(user_id=current_user.id, post_id=post.id)
-        return (
-            jsonify(
-                dict(
-                    msg="View saved.",
-                )
-            ),
-            200,
-        )
+        return (jsonify(dict(msg="View saved.")), 200)
+
 
 # === Taxonomy Routes === #
 

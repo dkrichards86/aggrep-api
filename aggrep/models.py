@@ -294,8 +294,8 @@ class PostView(BaseModel):
     )
     action_datetime = db.Column(db.DateTime, nullable=False, default=now)
 
-    user = db.relationship("User", uselist=False, backref="post_views")
-    post = db.relationship("Post", uselist=False, backref="post_views")
+    user = db.relationship("User", uselist=False, backref="post_views", lazy="subquery")
+    post = db.relationship("Post", uselist=False, backref="post_views", lazy="subquery")
 
 
 user_excluded_sources = db.Table(
