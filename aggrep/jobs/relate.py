@@ -6,7 +6,7 @@ from flask import current_app
 
 from aggrep import db
 from aggrep.jobs.base import Job
-from aggrep.models import Post, Similarity, SimilarityProcessQueue
+from aggrep.models import Category, Feed, Post, Similarity, SimilarityProcessQueue
 from aggrep.utils import now, overlap
 
 BATCH_SIZE = 100
@@ -19,15 +19,25 @@ class Relater(Job):
     identifier = "RELATE"
     lock_timeout = 8
 
-    def get_enqueued_posts(self):
+    def get_enqueued_posts(self, category):
         """Get enqueued posts."""
-        return [eq.post for eq in SimilarityProcessQueue.query.all()]
+        similar_by_category = SimilarityProcessQueue.query.filter(
+            SimilarityProcessQueue.post.has(Post.feed.has(Feed.category == category))
+        ).all()
 
-    def get_entity_cache(self):
+        return [eq.post for eq in similar_by_category]
+
+    def set_entity_cache(self, category):
         """Get entities from recent posts."""
         delta = now() - timedelta(days=2)
         entity_cache = defaultdict(set)
-        recent_posts = Post.query.filter(Post.published_datetime >= delta).all()
+
+        recent_posts = (
+            Post.query.filter(Post.published_datetime >= delta)
+            .filter(Post.feed.has(Feed.category == category))
+            .all()
+        )
+
         for rp in recent_posts:
             for e in rp.entities:
                 entity_cache[e.entity].add(rp.id)
@@ -55,13 +65,8 @@ class Relater(Job):
                 Post.id.in_(list(unioned_post_ids))
             ).all()
 
-            seen_post_ids = set()
-
             for rp in keyworded_posts:
                 if rp.id == post.id:
-                    continue
-
-                if rp.id in seen_post_ids:
                     continue
 
                 related_entity_set = set([e.entity for e in rp.entities])
@@ -73,8 +78,6 @@ class Relater(Job):
                     r_to_s = Similarity(related_id=post.id, source_id=rp.id)
                     db.session.add(r_to_s)
                     new_similarities += 2
-
-                seen_post_ids.add(rp.id)
 
         SimilarityProcessQueue.query.filter(
             SimilarityProcessQueue.post_id.in_(post_ids)
@@ -100,26 +103,33 @@ class Relater(Job):
             else:
                 self.lock.remove()
 
-        enqueued_posts = self.get_enqueued_posts()
-        if len(enqueued_posts) == 0:
+        self.lock.create()
+        similar_queue_count = SimilarityProcessQueue.query.count()
+        if similar_queue_count == 0:
             current_app.logger.info(
                 "No posts in similarity processing queue. Skipping..."
             )
             return
 
-        self.lock.create()
         current_app.logger.info(
-            "Processing {} posts in similarity queue.".format(len(enqueued_posts))
+            "Processing {} posts in similarity processing queue.".format(
+                similar_queue_count
+            )
         )
 
-        self.get_entity_cache()
         new_similarities = 0
-        start = 0
-        while start < len(enqueued_posts):
-            end = start + BATCH_SIZE
-            batch = enqueued_posts[start:end]
-            new_similarities += self.process_batch(batch)
-            start = end
+        for category in Category.query.all():
+            enqueued_posts = self.get_enqueued_posts(category)
+            if len(enqueued_posts) == 0:
+                continue
+
+            self.set_entity_cache(category)
+            start = 0
+            while start < len(enqueued_posts):
+                end = start + BATCH_SIZE
+                batch = enqueued_posts[start:end]
+                new_similarities += self.process_batch(batch)
+                start = end
 
         current_app.logger.info("Unlocking relater.")
         self.lock.remove()
