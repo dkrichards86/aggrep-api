@@ -109,7 +109,7 @@ def all_posts():
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources))),
             )
 
-        posts = posts.limit(POST_LIMIT).from_self()
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -151,7 +151,7 @@ def posts_by_source(source):
                 Post.feed.has(Feed.category.has(Category.id.notin_(categories)))
             )
 
-        posts = posts.limit(POST_LIMIT).from_self()
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -197,7 +197,7 @@ def posts_by_category(category):
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources)))
             )
 
-        posts = posts.limit(POST_LIMIT).from_self()
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
