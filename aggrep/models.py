@@ -284,6 +284,20 @@ class Bookmark(BaseModel):
 db.Index("ix_user_bookmark", Bookmark.user_id, Bookmark.post_id)
 
 
+class PostView(BaseModel):
+    """Post view model."""
+
+    __tablename__ = "post_views"
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
+    action_datetime = db.Column(db.DateTime, nullable=False, default=now)
+
+    user = db.relationship("User", uselist=False, backref="post_views", lazy="subquery")
+    post = db.relationship("Post", uselist=False, backref="post_views", lazy="subquery")
+
+
 user_excluded_sources = db.Table(
     "user_excluded_sources",
     db.Column("user_id", db.Integer(), db.ForeignKey("user.id")),

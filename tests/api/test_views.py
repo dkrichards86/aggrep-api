@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import Category, Feed, Source
+from aggrep.models import Category, Feed, PostView, Source
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -346,6 +346,54 @@ class TestCategoryPosts:
         assert json_data["per_page"] == 2
         assert json_data["total_pages"] == 3
         assert json_data["total_items"] == 5
+
+
+@pytest.mark.usefixtures("db")
+class TestViewedPosts:
+    """Test viewed posts endpoint."""
+
+    def test_endpoint(self, app, user, client):
+        """Test a successful request."""
+
+        for i, instance in enumerate(PostFactory.create_batch(25)):
+            instance.save()
+            if i % 5 == 0:
+                PostView.create(user_id=user.id, post_id=instance.id)
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+        rv = client.get("/v1/views", headers={"Authorization": token})
+
+        assert rv.status_code == 200
+        json_data = rv.get_json()
+
+        assert json_data["title"] == "Recently Viewed Posts"
+        assert len(json_data["items"]) == 5
+        assert json_data["page"] == 1
+        assert json_data["per_page"] == 10
+        assert json_data["total_pages"] == 1
+        assert json_data["total_items"] == 5
+
+    def test_post_view(self, app, post, user, client):
+        """Test a successful POST request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.post(
+                "/v1/views", json=dict(uid=post.uid), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 200
+            assert len(user.post_views) == 1
+
+    def test_no_auth(self, app, client, user):
+        """Test a request with no auth token."""
+        rv = client.get("/v1/views")
+        assert rv.status_code == 401
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Missing Authorization Header"
 
 
 @pytest.mark.usefixtures("db")
