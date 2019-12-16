@@ -1,5 +1,5 @@
 """App views module."""
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from flask_jwt_extended import (
@@ -23,8 +23,9 @@ from aggrep.api.forms import (
     UpdatePasswordForm,
 )
 from aggrep.models import Bookmark, Category, Feed, Post, PostAction, Source, User
-from aggrep.utils import get_cache_key, now
+from aggrep.utils import get_cache_key
 
+POST_LIMIT = 500
 POPULAR = "popular"
 LATEST = "latest"
 
@@ -91,7 +92,6 @@ def all_posts():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -99,7 +99,7 @@ def all_posts():
     cached = cache.get(cache_key)
 
     if cached is None:
-        posts = Post.query.filter(Post.published_datetime >= delta)
+        posts = Post.query
 
         if current_user:
             sources = [s.id for s in current_user.excluded_sources]
@@ -109,6 +109,7 @@ def all_posts():
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources))),
             )
 
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -132,7 +133,6 @@ def posts_by_source(source):
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -143,9 +143,7 @@ def posts_by_source(source):
 
     if cached is None:
         src = Source.query.filter_by(slug=source).first()
-        posts = Post.query.filter(Post.published_datetime >= delta).filter(
-            Post.feed.has(Feed.source.has(Source.slug == source))
-        )
+        posts = Post.query.filter(Post.feed.has(Feed.source.has(Source.slug == source)))
 
         if current_user:
             categories = [c.id for c in current_user.excluded_categories]
@@ -153,6 +151,7 @@ def posts_by_source(source):
                 Post.feed.has(Feed.category.has(Category.id.notin_(categories)))
             )
 
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -178,7 +177,6 @@ def posts_by_category(category):
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     sort = request.args.get("sort", POPULAR, type=str)
-    delta = now() - timedelta(days=1)
 
     identity = get_jwt_identity()
     current_user = User.get_user_from_identity(identity)
@@ -189,7 +187,7 @@ def posts_by_category(category):
 
     if cached is None:
         cat = Category.query.filter_by(slug=category).first()
-        posts = Post.query.filter(Post.published_datetime >= delta).filter(
+        posts = Post.query.filter(
             Post.feed.has(Feed.category.has(Category.slug == category))
         )
 
@@ -199,6 +197,7 @@ def posts_by_category(category):
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources)))
             )
 
+        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
