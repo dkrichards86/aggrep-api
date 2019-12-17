@@ -246,7 +246,6 @@ def similar_posts(uid):
         "similar_posts", identity, page, per_page, sort, route_arg=uid
     )
     cached = cache.get(cache_key)
-    cached = None
 
     if cached is None:
         source_post = Post.from_uid(uid)
