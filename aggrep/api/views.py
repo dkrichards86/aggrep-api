@@ -119,7 +119,9 @@ def all_posts():
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources))),
             )
 
-        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        posts = (
+            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        )
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -161,7 +163,9 @@ def posts_by_source(source):
                 Post.feed.has(Feed.category.has(Category.id.notin_(categories)))
             )
 
-        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        posts = (
+            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        )
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -207,7 +211,9 @@ def posts_by_category(category):
                 Post.feed.has(Feed.source.has(Source.id.notin_(sources)))
             )
 
-        posts = posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        posts = (
+            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
+        )
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -246,6 +252,7 @@ def similar_posts(uid):
         post_ids = set([p.related_id for p in source_post.similar_posts])
         post_ids.add(source_post.id)
         posts = Post.query.filter(Post.id.in_(post_ids))
+        posts = source_post.similar_posts
         posts = sort_posts(posts, sort)
 
         title = "Similar Posts"
@@ -270,11 +277,10 @@ def bookmarked_posts():
     if request.method == "GET":
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
-        post_ids = [b.post.id for b in current_user.bookmarks]
-        posts = Post.query.filter(Post.id.in_(post_ids))
+        posts = current_user.bookmarks
 
-        for pid in post_ids:
-            register_impression(pid)
+        for p in posts:
+            register_impression(p.id)
 
         return (
             jsonify(
@@ -292,7 +298,7 @@ def bookmarked_post_ids():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if request.method == "GET":
-        return jsonify(bookmarks=[b.post.uid for b in current_user.bookmarks]), 200
+        return jsonify(bookmarks=[b.uid for b in current_user.bookmarks]), 200
     elif request.method == "POST":
         payload = request.get_json() or {}
         uid = payload.get("uid")
@@ -312,7 +318,7 @@ def bookmarked_post_ids():
         return (
             jsonify(
                 dict(
-                    bookmarks=[b.post.uid for b in current_user.bookmarks],
+                    bookmarks=[b.uid for b in current_user.bookmarks],
                     msg="Bookmark saved!",
                 )
             ),
@@ -331,7 +337,7 @@ def bookmarked_post_ids():
         return (
             jsonify(
                 dict(
-                    bookmarks=[b.post.uid for b in current_user.bookmarks],
+                    bookmarks=[b.uid for b in current_user.bookmarks],
                     msg="Bookmark removed!",
                 )
             ),
@@ -346,11 +352,10 @@ def viewed_posts():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if request.method == "GET":
-        post_ids = [b.post.id for b in current_user.post_views][-N_RECENT_POSTS:]
-        posts = Post.query.filter(Post.id.in_(post_ids))
+        posts = current_user.post_views.limit(N_RECENT_POSTS).from_self()
 
-        for pid in post_ids:
-            register_impression(pid)
+        for p in posts:
+            register_impression(p.id)
 
         return (
             jsonify(
