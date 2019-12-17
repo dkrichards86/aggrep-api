@@ -386,7 +386,7 @@ class TestViewedPosts:
             )
 
             assert rv.status_code == 200
-            assert len(user.post_views) == 1
+            assert user.post_views.count() == 1
 
     def test_no_auth(self, app, client, user):
         """Test a request with no auth token."""

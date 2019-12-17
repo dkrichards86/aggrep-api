@@ -145,7 +145,10 @@ class Post(BaseModel, PaginatedAPIMixin):
     enqueued_entities = db.relationship("EntityProcessQueue", backref="post")
 
     similar_posts = db.relationship(
-        "Similarity", backref="post", foreign_keys="Similarity.source_id"
+        "Similarity",
+        foreign_keys="Similarity.source_id",
+        backref=db.backref("post", uselist=False),
+        lazy="dynamic",
     )
 
     enqueued_similartities = db.relationship("SimilarityProcessQueue", backref="post")
@@ -179,7 +182,7 @@ class Post(BaseModel, PaginatedAPIMixin):
             title=self.title,
             link=url_for("app.follow_redirect", uid=self.uid, _external=True),
             post_url=self.link,
-            similar_count=len(self.similar_posts),
+            similar_count=self.similar_posts.count(),
             feed=self.feed.to_dict(),
             published_datetime=self.published_datetime,
         )
@@ -277,7 +280,6 @@ class Bookmark(BaseModel):
     )
     action_datetime = db.Column(db.DateTime, nullable=False, default=now)
 
-    user = db.relationship("User", uselist=False, backref="bookmarks")
     post = db.relationship("Post", uselist=False, backref="bookmarks")
 
 
@@ -294,8 +296,7 @@ class PostView(BaseModel):
     )
     action_datetime = db.Column(db.DateTime, nullable=False, default=now)
 
-    user = db.relationship("User", uselist=False, backref="post_views", lazy="subquery")
-    post = db.relationship("Post", uselist=False, backref="post_views", lazy="subquery")
+    post = db.relationship("Post", uselist=False, backref="post_views")
 
 
 user_excluded_sources = db.Table(
@@ -333,6 +334,19 @@ class User(BaseModel):
         secondary=user_excluded_categories,
         lazy="subquery",
         backref=db.backref("user_excluded_categories", lazy=True),
+    )
+
+    bookmarks = db.relationship(
+        "Post",
+        secondary="bookmarks",
+        order_by="desc(Bookmark.action_datetime)",
+        lazy="dynamic",
+    )
+    post_views = db.relationship(
+        "Post",
+        secondary="post_views",
+        order_by="desc(PostView.action_datetime)",
+        lazy="dynamic",
     )
 
     def set_password(self, password):
