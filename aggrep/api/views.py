@@ -248,14 +248,12 @@ def similar_posts(uid):
     cached = cache.get(cache_key)
 
     if cached is None:
-        source_post = Post.from_uid(uid)
-        post_ids = set([p.related_id for p in source_post.similar_posts])
-        post_ids.add(source_post.id)
-        posts = Post.query.filter(Post.id.in_(post_ids))
-        posts = source_post.similar_posts
+        _post = Post.from_uid(uid)
+        source_post = Post.query.filter(Post.id == _post.id)
+        posts = source_post.union(_post.similar_posts)
         posts = sort_posts(posts, sort)
 
-        title = "Similar Posts"
+        title = "More Coverage"
 
         cached = dict(
             **Post.to_collection_dict(posts, page, per_page, uid=uid), title=title

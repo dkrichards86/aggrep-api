@@ -145,9 +145,10 @@ class Post(BaseModel, PaginatedAPIMixin):
     enqueued_entities = db.relationship("EntityProcessQueue", backref="post")
 
     similar_posts = db.relationship(
-        "Similarity",
-        foreign_keys="Similarity.source_id",
-        backref=db.backref("post", uselist=False),
+        "Post",
+        secondary="similarities",
+        primaryjoin="Post.id==Similarity.related_id",
+        secondaryjoin="Similarity.source_id==Post.id",
         lazy="dynamic",
     )
 
