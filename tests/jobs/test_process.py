@@ -27,17 +27,50 @@ class TestProcess:
         """Test entity extraction."""
 
         result = extract(BASE_TEXT)
-        expected = [
-            "madrid",
-            "francisco",
-            "franco",
-            "femen",
-            "madrid",
-            "plaza",
-            "de",
-            "oriente",
-            "franco",
-        ]
+        expected = set(
+            [
+                "feminist",
+                "femen",
+                "female",
+                "sunday",
+                "spain",
+                "plaza",
+                "glory",
+                "chest",
+                "anniversary",
+                "demonstrator",
+                "legacy",
+                "francisco",
+                "hundred",
+                "dozen",
+                "death",
+                "franco",
+                "november",
+                "madrid",
+                "salute",
+                "fascist",
+                "francoist",
+                "fascism",
+                "flag",
+                "slogan",
+                "march",
+                "group",
+                "de",
+                "arm",
+                "icon",
+                "crowd",
+                "topless",
+                "half",
+                "supporter",
+                "oriente",
+                "demonstration",
+                "dictator",
+                "activist",
+                "honor",
+                "woman",
+                "police",
+            ]
+        )
         assert result == expected
 
     def test_clean(self):
