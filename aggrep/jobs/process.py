@@ -15,16 +15,6 @@ ws = re.compile(r"\s+")
 nlp = spacy.load("en_core_web_sm")
 
 
-EXCLUDES = [
-    "LANGUAGE",
-    "DATE",
-    "TIME",
-    "PERCENT",
-    "MONEY",
-    "QUANTITY",
-    "ORDINAL",
-    "CARDINAL",
-]
 BATCH_SIZE = 250
 
 
@@ -41,15 +31,12 @@ def extract(text):
     entities = []
     doc = nlp(text)
 
-    for span in doc.ents:
+    for span in doc.noun_chunks:
         for token in span:
             if len(token) < 2 or len(token) > 40:
                 continue
 
             if token.is_punct or token.is_stop or token.is_digit:
-                continue
-
-            if token.ent_type_ in EXCLUDES:
                 continue
 
             entity = token.lemma_.lower()
