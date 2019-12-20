@@ -166,6 +166,9 @@ class Collector(Job):
     def process_feeds(self):
         """Process feeds ready for review."""
         for feed in self.due_feeds:
+            if not self.lock.is_locked() or self.lock.is_expired():
+                break
+
             link_urls = self.get_source_posts(feed.source)
 
             # Get the actual feed data
