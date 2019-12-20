@@ -205,6 +205,8 @@ class PostAction(BaseModel):
     impressions = db.Column(db.Integer, default=0)
     ctr = db.Column(db.Numeric(4, 3), default=0)
 
+    post = db.relationship("Post", uselist=False, backref="post_actions")
+
 
 class EntityProcessQueue(BaseModel):
     """Entity queue model."""
