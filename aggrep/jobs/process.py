@@ -30,7 +30,7 @@ def clean(text):
 
 def extract(text):
     """Extract entities from a document."""
-    entities = set()
+    entities = []
     doc = nlp(text)
 
     for span in doc.noun_chunks:
@@ -42,7 +42,7 @@ def extract(text):
                 continue
 
             entity = token.lemma_.lower()
-            entities.add(entity.translate(punct_table))
+            entities.append(entity.translate(punct_table))
 
     return entities
 
