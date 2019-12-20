@@ -126,6 +126,8 @@ class Relater(Job):
             self.set_entity_cache(category)
             start = 0
             while start < len(enqueued_posts):
+                if not self.lock.is_locked() or self.lock.is_expired():
+                    break
                 end = start + BATCH_SIZE
                 batch = enqueued_posts[start:end]
                 new_similarities += self.process_batch(batch)

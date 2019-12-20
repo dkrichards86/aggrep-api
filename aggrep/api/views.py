@@ -1,5 +1,5 @@
 """App views module."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request
 from flask_jwt_extended import (
@@ -32,7 +32,7 @@ from aggrep.models import (
     Source,
     User,
 )
-from aggrep.utils import get_cache_key
+from aggrep.utils import get_cache_key, now
 
 N_RECENT_POSTS = 10
 POST_LIMIT = 500
@@ -109,7 +109,8 @@ def all_posts():
     cached = cache.get(cache_key)
 
     if cached is None:
-        posts = Post.query
+        delta = now() - timedelta(days=7)
+        posts = Post.query.filter(Post.published_datetime >= delta)
 
         if current_user:
             sources = [s.id for s in current_user.excluded_sources]
@@ -154,8 +155,12 @@ def posts_by_source(source):
     cached = cache.get(cache_key)
 
     if cached is None:
+        delta = now() - timedelta(days=7)
         src = Source.query.filter_by(slug=source).first()
-        posts = Post.query.filter(Post.feed.has(Feed.source.has(Source.slug == source)))
+        posts = Post.query.filter(
+            Post.published_datetime >= delta,
+            Post.feed.has(Feed.source.has(Source.slug == source)),
+        )
 
         if current_user:
             categories = [c.id for c in current_user.excluded_categories]
@@ -200,9 +205,11 @@ def posts_by_category(category):
     cached = cache.get(cache_key)
 
     if cached is None:
+        delta = now() - timedelta(days=7)
         cat = Category.query.filter_by(slug=category).first()
         posts = Post.query.filter(
-            Post.feed.has(Feed.category.has(Category.slug == category))
+            Post.published_datetime >= delta,
+            Post.feed.has(Feed.category.has(Category.slug == category)),
         )
 
         if current_user:
