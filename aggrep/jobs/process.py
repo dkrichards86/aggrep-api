@@ -1,7 +1,6 @@
 """Entity processing job."""
 import re
 import string
-from collections import Counter
 
 import spacy
 from flask import current_app
@@ -17,7 +16,6 @@ nlp = spacy.load("en_core_web_sm")
 
 
 BATCH_SIZE = 250
-N_ENTITIES = 8
 
 
 def clean(text):
@@ -30,7 +28,7 @@ def clean(text):
 
 def extract(text):
     """Extract entities from a document."""
-    entities = []
+    entities = set()
     doc = nlp(text)
 
     for span in doc.noun_chunks:
@@ -42,7 +40,7 @@ def extract(text):
                 continue
 
             entity = token.lemma_.lower()
-            entities.append(entity.translate(punct_table))
+            entities.add(entity.translate(punct_table))
 
     return entities
 
@@ -69,8 +67,7 @@ class Processor(Job):
                 continue
 
             post_doc = extract(clean("{}. {}".format(post.title, post.desc)))
-            entity_counter = Counter(post_doc)
-            for word, _ in entity_counter.most_common(N_ENTITIES):
+            for word in post_doc:
                 post_has_entities = True
                 e = Entity(entity=word, post_id=post.id)
                 db.session.add(e)
