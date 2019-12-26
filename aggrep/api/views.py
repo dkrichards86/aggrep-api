@@ -280,7 +280,7 @@ def search_posts():
     """Search posts."""
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
-    term = request.args.get("query", 1, type=str)
+    term = request.args.get("query", '', type=str)
     sort = RELEVANT
 
     identity = get_jwt_identity()
