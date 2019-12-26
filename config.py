@@ -59,7 +59,7 @@ class TestingConfig(Config):
     DEBUG = True
     LOG_LEVEL = "debug"
     SECRET_KEY = "not-so-secret-in-tests"
-    SQLALCHEMY_DATABASE_URI = "sqlite://"
+    # SQLALCHEMY_DATABASE_URI = "postgresql://aggrep:aggrep@postgres/test"
 
     BCRYPT_LOG_ROUNDS = 4
     CACHE_TYPE = "null"

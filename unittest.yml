@@ -1,0 +1,36 @@
+version: '3.3'
+
+services:
+  postgres:
+    container_name: aggrep_unittest_database
+    image: postgres:11.6
+    environment:
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_USER: "test"
+      POSTGRES_DB: "test"
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      context: .
+    image: aggrep_unittest_backend
+    container_name: aggrep_unittest_web
+    ports:
+      - 8080:8080
+    environment:
+      PYTHONUNBUFFERED: 1
+      PGPASSWORD: test
+      DATABASE_URL: postgresql://test:test@postgres/test
+      UI_URL: http://localhost:3000
+    volumes:
+      - ./aggrep:/code/aggrep
+      - ./migrations:/code/migrations
+      - ./tests:/code/tests
+      - ./.env:/code/.env
+      - ./autoapp.py:/code/autoapp.py
+      - ./config.py:/code/config.py
+      - ./setup.cfg:/code/setup.cfg
+      - ./wait-for-postgres.sh:/code/wait-for-postgres.sh
+    depends_on:
+      - postgres
