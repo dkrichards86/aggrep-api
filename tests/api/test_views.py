@@ -469,6 +469,29 @@ class TestSearch:
             assert json_data["total_items"] == 2
 
 
+    def test_missing_term(self, app, client, feed):
+        """Test a successful request."""
+
+        posts = [
+            "Jived fox nymph grabs quick waltz.",
+            "Glib jocks quiz nymph to vex dwarf.",
+            "Sphinx of black quartz, judge my vow.",
+            "How vexingly quick daft zebras jump.",
+            "Jackdaws love my big sphinx of quartz.",
+        ]
+
+        for i, post in enumerate(posts):
+            p = Post.create(
+                feed=feed, title=post, desc=post, link="link{}.com".format(i)
+            )
+            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
+
+        rv = client.get("/v1/search")
+        assert rv.status_code == 400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "No search terms provided."
+
+
 @pytest.mark.usefixtures("db")
 class TestAuthTokenConfirm:
     """Test the auth token confirmation endpoint."""

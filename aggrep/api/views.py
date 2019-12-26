@@ -280,8 +280,11 @@ def search_posts():
     """Search posts."""
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
-    term = request.args.get("query", '', type=str)
+    term = request.args.get("query", None, type=str)
     sort = RELEVANT
+
+    if term is None:
+        return jsonify(msg="No search terms provided."), 400
 
     identity = get_jwt_identity()
     cache_key = get_cache_key(
