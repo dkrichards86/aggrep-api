@@ -24,13 +24,17 @@ TEST_PATH = os.path.join(APP_ROOT, "tests")
 @click.command()
 @click.option("--show-missing", default=False, is_flag=True, help="Show missing lines")
 @click.option("--verbose", default=False, is_flag=True, help="Use verbose output")
-def test(show_missing, verbose):
+@click.option("--fail-fast", default=False, is_flag=True, help="Fail fast")
+def test(show_missing, verbose, fail_fast):
     """Run the tests."""
 
     command_line = ["pytest"]
 
     if verbose:
         command_line.append("-v")
+
+    if fail_fast:
+        command_line.append("-x")
 
     command_line.extend(["--cov=aggrep"])
 

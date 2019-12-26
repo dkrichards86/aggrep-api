@@ -11,6 +11,10 @@ services:
     ports:
       - "5432:5432"
 
+  redis:  
+    image: "redis:alpine"
+    container_name: aggrep_unittest_redis
+
   web:
     build:
       context: .
@@ -22,6 +26,7 @@ services:
       PYTHONUNBUFFERED: 1
       PGPASSWORD: test
       DATABASE_URL: postgresql://test:test@postgres/test
+      REDIS_URL: redis://redis:6379
       UI_URL: http://localhost:3000
     volumes:
       - ./aggrep:/code/aggrep

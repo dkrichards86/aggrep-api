@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import Category, Feed, PostView, Source
+from aggrep.models import Category, Feed, Post, PostAction, PostView, Source
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -403,7 +403,7 @@ class TestSources:
     def test_endpoint(self, app, client):
         """Test a successful request."""
 
-        for i, instance in enumerate(SourceFactory.create_batch(25)):
+        for instance in SourceFactory.create_batch(25):
             instance.save()
 
         rv = client.get("/v1/sources")
@@ -421,7 +421,7 @@ class TestCategories:
     def test_endpoint(self, app, client):
         """Test a successful request."""
 
-        for i, instance in enumerate(CategoryFactory.create_batch(8)):
+        for instance in CategoryFactory.create_batch(8):
             instance.save()
 
         rv = client.get("/v1/categories")
@@ -430,6 +430,43 @@ class TestCategories:
         json_data = rv.get_json()
 
         assert len(json_data["categories"]) == 8
+
+
+@pytest.mark.usefixtures("db")
+class TestSearch:
+    """Test search endpoint."""
+
+    def test_endpoint(self, app, client, feed):
+        """Test a successful request."""
+
+        posts = [
+            "Jived fox nymph grabs quick waltz.",
+            "Glib jocks quiz nymph to vex dwarf.",
+            "Sphinx of black quartz, judge my vow.",
+            "How vexingly quick daft zebras jump.",
+            "Jackdaws love my big sphinx of quartz.",
+        ]
+
+        for i, post in enumerate(posts):
+            p = Post.create(
+                feed=feed, title=post, desc=post, link="link{}.com".format(i)
+            )
+            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
+
+        with app.app_context():
+            rv = client.get("/v1/search?query=nymph")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 2
+        
+        with app.app_context():
+            rv = client.get("/v1/search?query=nymph dwarf")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 1
+        
+        with app.app_context():
+            rv = client.get("/v1/search?query=quartz")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 2
 
 
 @pytest.mark.usefixtures("db")
