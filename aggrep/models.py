@@ -1,11 +1,16 @@
 """Database models."""
 import short_url
 from flask import current_app, url_for
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy_searchable import SearchQueryMixin, make_searchable
+from sqlalchemy_utils.types import TSVectorType
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from aggrep import db
 from aggrep.utils import decode_token, encode_token, now
+
+make_searchable(db.metadata)
 
 
 class PKMixin:
@@ -64,6 +69,16 @@ class PaginatedAPIMixin:
             "total_items": resources.total,
         }
         return data
+
+
+class SearchMixin:
+    """Pagination mixin."""
+
+    @staticmethod
+    def search(query, search_terms):
+        return query.from_self().filter(
+            Post.search_vector.op("@@")(db.func.to_tsquery(search_terms))
+        )
 
 
 class Category(BaseModel):
@@ -127,17 +142,18 @@ class Feed(BaseModel):
         )
 
 
-class Post(BaseModel, PaginatedAPIMixin):
+class Post(BaseModel, PaginatedAPIMixin, SearchMixin):
     """Post model."""
 
     __tablename__ = "posts"
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"))
-    title = db.Column(db.String(255), nullable=False)
-    desc = db.Column(db.Text())
+    title = db.Column(db.Unicode(255), nullable=False)
+    desc = db.Column(db.UnicodeText)
     link = db.Column(db.String(255), nullable=False)
     published_datetime = db.Column(db.DateTime, nullable=False, default=now, index=True)
     ingested_datetime = db.Column(db.DateTime, nullable=False, default=now)
     actions = db.relationship("PostAction", uselist=False, backref="posts")
+    search_vector = db.Column(TSVectorType("title", "desc"))
 
     feed = db.relationship("Feed", uselist=False, backref="posts")
 

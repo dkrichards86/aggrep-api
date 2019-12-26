@@ -38,6 +38,7 @@ N_RECENT_POSTS = 10
 POST_LIMIT = 500
 POPULAR = "popular"
 LATEST = "latest"
+RELEVANT = "relevant"
 
 app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
@@ -265,6 +266,41 @@ def similar_posts(uid):
         cached = dict(
             **Post.to_collection_dict(posts, page, per_page, uid=uid), title=title
         )
+        cache.set(cache_key, cached, timeout=180)
+
+    for item in cached["items"]:
+        register_impression(item["id"])
+
+    return jsonify(**cached), 200
+
+
+@api.route("/search")
+@jwt_optional
+def search_posts():
+    """Search posts."""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    term = request.args.get("query", 1, type=str)
+    sort = RELEVANT
+
+    identity = get_jwt_identity()
+    cache_key = get_cache_key(
+        "similar_posts", identity, page, per_page, sort, route_arg=term
+    )
+    cached = cache.get(cache_key)
+
+    if cached is None:
+        delta = now() - timedelta(days=7)
+        searchable_posts = Post.query.filter(Post.published_datetime >= delta)
+
+        query = " & ".join(term.split(" "))
+
+        posts = Post.search(searchable_posts, query)
+        current_app.logger.info(term)
+        current_app.logger.info(query)
+
+        title = "Search Results"
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
