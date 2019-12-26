@@ -27,7 +27,9 @@ class TestProcess:
         """Test entity extraction."""
 
         result = extract(BASE_TEXT)
-        expected = set(["franco", "de", "francisco", "femen", "oriente", "madrid", "plaza"])
+        expected = set(
+            ["franco", "de", "francisco", "femen", "oriente", "madrid", "plaza"]
+        )
         assert result == expected
 
     def test_clean(self):

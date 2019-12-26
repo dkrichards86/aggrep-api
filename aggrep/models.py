@@ -1,9 +1,8 @@
 """Database models."""
 import short_url
 from flask import current_app, url_for
-from flask_sqlalchemy import BaseQuery
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_searchable import SearchQueryMixin, make_searchable
+from sqlalchemy_searchable import make_searchable
 from sqlalchemy_utils.types import TSVectorType
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -71,18 +70,8 @@ class PaginatedAPIMixin:
         return data
 
 
-class SearchMixin:
-    """Pagination mixin."""
-
-    @staticmethod
-    def search(query, search_terms):
-        return query.from_self().filter(
-            Post.search_vector.op("@@")(db.func.to_tsquery(search_terms))
-        )
-
-
 class Category(BaseModel):
-    """Category."""
+    """Category model."""
 
     __tablename__ = "categories"
     slug = db.Column(db.String(32), unique=True, nullable=False)
@@ -142,7 +131,7 @@ class Feed(BaseModel):
         )
 
 
-class Post(BaseModel, PaginatedAPIMixin, SearchMixin):
+class Post(BaseModel, PaginatedAPIMixin):
     """Post model."""
 
     __tablename__ = "posts"
@@ -169,6 +158,13 @@ class Post(BaseModel, PaginatedAPIMixin, SearchMixin):
     )
 
     enqueued_similartities = db.relationship("SimilarityProcessQueue", backref="post")
+
+    @staticmethod
+    def search(query, search_terms):
+        """Search a post collection for search terms."""
+        return query.from_self().filter(
+            Post.search_vector.op("@@")(db.func.to_tsquery(search_terms))
+        )
 
     @property
     def uid(self):
