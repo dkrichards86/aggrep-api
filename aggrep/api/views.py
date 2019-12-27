@@ -1,7 +1,16 @@
 """App views module."""
 from datetime import datetime, timedelta
 
-from flask import Blueprint, abort, current_app, jsonify, make_response, redirect, render_template, request
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+)
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -55,7 +64,7 @@ def before_request():
 
 @api.errorhandler(400)
 def error_handler_400(e):
-    """JSONify an error message on 400."""
+    """Jsonify an error message on 400."""
     return make_response(jsonify(msg=e.description), 400)
 
 

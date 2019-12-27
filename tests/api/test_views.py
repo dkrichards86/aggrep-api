@@ -473,17 +473,16 @@ class TestSearch:
             rv = client.get("/v1/search?query=nymph")
             json_data = rv.get_json()
             assert json_data["total_items"] == 2
-        
+
         with app.app_context():
             rv = client.get("/v1/search?query=nymph dwarf")
             json_data = rv.get_json()
             assert json_data["total_items"] == 1
-        
+
         with app.app_context():
             rv = client.get("/v1/search?query=quartz")
             json_data = rv.get_json()
             assert json_data["total_items"] == 2
-
 
     def test_missing_term(self, app, client, feed):
         """Test a missing search term."""
