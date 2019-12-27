@@ -5,6 +5,12 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.6
+        environment:
+          DATABASE_URL: postgresql://test@localhost/test?sslmode=disable
+      - image: circleci/postgres:11.6
+        environment:
+          POSTGRES_USER: test
+          POSTGRES_DB: test
     environment:
       FLASK_APP: autoapp.py
       FLASK_ENV: production
