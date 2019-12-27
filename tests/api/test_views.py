@@ -180,6 +180,14 @@ class TestSourcePosts:
         assert json_data["total_pages"] == 1
         assert json_data["total_items"] == 5
 
+    def test_source_doesnt_exist(self, app, client):
+        """Test invalid source."""
+        rv = client.get("/v1/source/doesnt-exist")
+
+        assert rv.status_code == 2400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Source 'doesnt-exist' does not exist."
+
     def test_endpoint_sort(self, app, client):
         """Test a successful request with sort argument."""
         src = Source.create(slug="source", title="Test Source")
@@ -277,6 +285,14 @@ class TestCategoryPosts:
         assert json_data["per_page"] == 20
         assert json_data["total_pages"] == 1
         assert json_data["total_items"] == 5
+
+    def test_category_doesnt_exist(self, app, client):
+        """Test invalid category."""
+        rv = client.get("/v1/category/doesnt-exist")
+
+        assert rv.status_code == 2400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Category 'doesnt-exist' does not exist."
 
     def test_endpoint_sort(self, app, client):
         """Test a successful request with sort argument."""
