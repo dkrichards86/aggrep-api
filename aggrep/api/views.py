@@ -302,7 +302,7 @@ def search_posts():
 
     identity = get_jwt_identity()
     cache_key = get_cache_key(
-        "similar_posts", identity, page, per_page, sort, route_arg=term
+        "search_posts", identity, page, per_page, sort, route_arg=term
     )
     cached = cache.get(cache_key)
 
