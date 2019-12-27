@@ -184,7 +184,7 @@ class TestSourcePosts:
         """Test invalid source."""
         rv = client.get("/v1/source/doesnt-exist")
 
-        assert rv.status_code == 2400
+        assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Source 'doesnt-exist' does not exist."
 
@@ -290,7 +290,7 @@ class TestCategoryPosts:
         """Test invalid category."""
         rv = client.get("/v1/category/doesnt-exist")
 
-        assert rv.status_code == 2400
+        assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Category 'doesnt-exist' does not exist."
 
@@ -486,22 +486,7 @@ class TestSearch:
 
 
     def test_missing_term(self, app, client, feed):
-        """Test a successful request."""
-
-        posts = [
-            "Jived fox nymph grabs quick waltz.",
-            "Glib jocks quiz nymph to vex dwarf.",
-            "Sphinx of black quartz, judge my vow.",
-            "How vexingly quick daft zebras jump.",
-            "Jackdaws love my big sphinx of quartz.",
-        ]
-
-        for i, post in enumerate(posts):
-            p = Post.create(
-                feed=feed, title=post, desc=post, link="link{}.com".format(i)
-            )
-            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-
+        """Test a missing search term."""
         rv = client.get("/v1/search")
         assert rv.status_code == 400
         json_data = rv.get_json()
@@ -576,7 +561,6 @@ class TestAuthLogin:
         assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Unable to complete login."
-        assert "errors" in json_data
 
     def test_missing_password(self, app, client, user):
         """Test a request with no password."""
@@ -584,7 +568,6 @@ class TestAuthLogin:
         assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Unable to complete login."
-        assert "errors" in json_data
 
     def test_invalid_method(self, app, client, user):
         """Test a request with an invalid HTTP method."""

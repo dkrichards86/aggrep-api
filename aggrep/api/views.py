@@ -298,7 +298,7 @@ def search_posts():
     sort = RELEVANT
 
     if term is None:
-        return jsonify(msg="No search terms provided."), 400
+        return abort(400, "No search terms provided.")
 
     identity = get_jwt_identity()
     cache_key = get_cache_key(
@@ -313,8 +313,6 @@ def search_posts():
         query = " & ".join(term.split(" "))
 
         posts = Post.search(searchable_posts, query)
-        current_app.logger.info(term)
-        current_app.logger.info(query)
 
         title = "Search Results"
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
