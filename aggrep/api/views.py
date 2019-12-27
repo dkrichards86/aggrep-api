@@ -1,7 +1,16 @@
 """App views module."""
 from datetime import datetime, timedelta
 
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+)
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -38,6 +47,7 @@ N_RECENT_POSTS = 10
 POST_LIMIT = 500
 POPULAR = "popular"
 LATEST = "latest"
+RELEVANT = "relevant"
 
 app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
@@ -50,6 +60,12 @@ def before_request():
     current_user = User.get_user_from_identity(get_jwt_identity())
     if current_user is not None:
         current_user.update(last_seen=datetime.utcnow())
+
+
+@api.errorhandler(400)
+def error_handler_400(e):
+    """Jsonify an error message on 400."""
+    return make_response(jsonify(msg=e.description), 400)
 
 
 # === Route Helpers === #
@@ -157,6 +173,10 @@ def posts_by_source(source):
     if cached is None:
         delta = now() - timedelta(days=7)
         src = Source.query.filter_by(slug=source).first()
+
+        if src is None:
+            abort(400, "Source '{}' does not exist.".format(source))
+
         posts = Post.query.filter(
             Post.published_datetime >= delta,
             Post.feed.has(Feed.source.has(Source.slug == source)),
@@ -207,6 +227,10 @@ def posts_by_category(category):
     if cached is None:
         delta = now() - timedelta(days=7)
         cat = Category.query.filter_by(slug=category).first()
+
+        if cat is None:
+            abort(400, "Category '{}' does not exist.".format(category))
+
         posts = Post.query.filter(
             Post.published_datetime >= delta,
             Post.feed.has(Feed.category.has(Category.slug == category)),
@@ -265,6 +289,42 @@ def similar_posts(uid):
         cached = dict(
             **Post.to_collection_dict(posts, page, per_page, uid=uid), title=title
         )
+        cache.set(cache_key, cached, timeout=180)
+
+    for item in cached["items"]:
+        register_impression(item["id"])
+
+    return jsonify(**cached), 200
+
+
+@api.route("/search")
+@jwt_optional
+def search_posts():
+    """Search posts."""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    term = request.args.get("query", None, type=str)
+    sort = RELEVANT
+
+    if term is None:
+        return abort(400, "No search terms provided.")
+
+    identity = get_jwt_identity()
+    cache_key = get_cache_key(
+        "search_posts", identity, page, per_page, sort, route_arg=term
+    )
+    cached = cache.get(cache_key)
+
+    if cached is None:
+        delta = now() - timedelta(days=7)
+        searchable_posts = Post.query.filter(Post.published_datetime >= delta)
+
+        query = " & ".join(term.split(" "))
+
+        posts = Post.search(searchable_posts, query)
+
+        title = "Search Results"
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
@@ -394,27 +454,15 @@ def viewed_posts():
 @api.route("/sources")
 def sources():
     """Get all sources."""
-    return (
-        jsonify(
-            sources=[
-                s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()
-            ]
-        ),
-        200,
-    )
+    sources = [s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()]
+    return jsonify(sources=sources), 200
 
 
 @api.route("/categories")
 def categories():
     """Get all categories."""
-    return (
-        jsonify(
-            categories=[
-                c.to_dict() for c in Category.query.order_by(Category.id.asc()).all()
-            ]
-        ),
-        200,
-    )
+    categories = [c.to_dict() for c in Category.query.order_by(Category.id.asc()).all()]
+    return jsonify(categories=categories), 200
 
 
 @api.route("/manage/sources", methods=["GET", "POST"])
@@ -494,16 +542,17 @@ def auth_token_confirm():
 def auth_login():
     """Log a user into the application."""
     if get_jwt_identity():
-        return jsonify(dict(msg="You are already logged in.")), 400
+        return abort(400, "You are already logged in.")
 
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = LoginForm(MultiDict(request.get_json()))
     if form.validate():
         user = User.query.filter_by(email=form.email.data).first()
         if user is None or not user.check_password(form.password.data):
-            return jsonify(dict(msg="Invalid email address or password")), 400
+            return abort(400, "Invalid email address or password")
+
         payload = dict(
             msg="Login Successful",
             user=user.to_dict(),
@@ -511,22 +560,17 @@ def auth_login():
         )
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to complete login.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to complete login.")
 
 
 @api.route("/auth/register", methods=["POST"])
 def auth_register():
     """Register a new user."""
     if get_jwt_identity():
-        return jsonify(dict(msg="You are already registered.")), 400
+        return abort(400, "You are already registered.")
 
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = RegisterForm(MultiDict(request.get_json()))
     if form.validate():
@@ -557,12 +601,7 @@ def auth_register():
         )
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to complete registration.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to complete registration.")
 
 
 @api.route("/auth/email/update", methods=["POST"])
@@ -572,7 +611,7 @@ def auth_email_update():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = UpdateEmailForm(MultiDict(request.get_json()))
     if form.validate():
@@ -605,12 +644,7 @@ def auth_email_update():
         )
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to update email.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to update email.")
 
 
 @api.route("/auth/email/confirm/request", methods=["POST"])
@@ -620,7 +654,7 @@ def auth_email_confirm_request():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     if current_user.confirmed:
         return jsonify(dict(msg="User is already confirmed")), 200
@@ -657,19 +691,13 @@ def auth_email_confirm_token():
     if form.validate():
         user = User.verify_email_confirm_token(form.token.data)
         if not user:
-            payload = dict(msg="Confirmation token is invalid.")
-            return jsonify(payload), 400
+            return abort(400, "Confirmation token is invalid.")
 
         user.update(confirmed=True)
         payload = dict(msg="Your email address has been confirmed.")
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to verify the email account.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to verify the email account.")
 
 
 @api.route("/auth/password/update", methods=["POST"])
@@ -679,13 +707,12 @@ def auth_password_update():
     current_user = User.get_user_from_identity(get_jwt_identity())
 
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = UpdatePasswordForm(MultiDict(request.get_json()))
     if form.validate():
         if not current_user.check_password(form.curr_password.data):
-            payload = dict(msg="Password incorrect.")
-            return jsonify(payload), 400
+            return abort(400, "Password incorrect.")
 
         current_user.set_password(form.new_password.data)
         email_data = dict(
@@ -706,19 +733,14 @@ def auth_password_update():
         payload = dict(msg="Your password has been updated.")
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to update your password.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to update your password.")
 
 
 @api.route("/auth/password/reset", methods=["POST"])
 def auth_password_reset():
     """Request password reset link."""
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = RequestResetForm(MultiDict(request.get_json()))
     if form.validate():
@@ -748,29 +770,22 @@ def auth_password_reset():
             )
             return jsonify(payload), 200
         else:
-            payload = dict(msg="The email address provided does not exist.")
-            return jsonify(payload), 400
+            return abort(400, "The email address provided does not exist.")
     else:
-        payload = dict(msg="Request Unsuccessful", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Request Unsuccessful")
 
 
 @api.route("/auth/password/reset/confirm", methods=["POST"])
 def auth_password_reset_confirm():
     """Reset a password from reset link."""
     if not request.is_json:
-        return jsonify(dict(msg="Invalid request.")), 400
+        return abort(400, "Invalid request.")
 
     form = ResetPasswordForm(MultiDict(request.get_json()))
     if form.validate():
         user = User.verify_reset_password_token(form.token.data)
         if not user:
-            payload = dict(msg="Reset token is invalid.")
-            return jsonify(payload), 400
+            return abort(400, "Reset token is invalid.")
 
         user.set_password(form.new_password.data)
         email_data = dict(
@@ -791,9 +806,4 @@ def auth_password_reset_confirm():
         payload = dict(msg="Your password has been updated.")
         return jsonify(payload), 200
     else:
-        payload = dict(msg="Unable to complete password update.", errors=dict())
-        for field, errors in form.errors.items():
-            for error in errors:
-                key = getattr(form, field).label.text
-                payload["errors"][key] = error
-        return jsonify(payload), 400
+        return abort(400, "Unable to complete password update.")

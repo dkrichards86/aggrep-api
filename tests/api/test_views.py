@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import Category, Feed, PostView, Source
+from aggrep.models import Category, Feed, Post, PostAction, PostView, Source
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -180,6 +180,14 @@ class TestSourcePosts:
         assert json_data["total_pages"] == 1
         assert json_data["total_items"] == 5
 
+    def test_source_doesnt_exist(self, app, client):
+        """Test invalid source."""
+        rv = client.get("/v1/source/doesnt-exist")
+
+        assert rv.status_code == 400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Source 'doesnt-exist' does not exist."
+
     def test_endpoint_sort(self, app, client):
         """Test a successful request with sort argument."""
         src = Source.create(slug="source", title="Test Source")
@@ -277,6 +285,14 @@ class TestCategoryPosts:
         assert json_data["per_page"] == 20
         assert json_data["total_pages"] == 1
         assert json_data["total_items"] == 5
+
+    def test_category_doesnt_exist(self, app, client):
+        """Test invalid category."""
+        rv = client.get("/v1/category/doesnt-exist")
+
+        assert rv.status_code == 400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Category 'doesnt-exist' does not exist."
 
     def test_endpoint_sort(self, app, client):
         """Test a successful request with sort argument."""
@@ -403,7 +419,7 @@ class TestSources:
     def test_endpoint(self, app, client):
         """Test a successful request."""
 
-        for i, instance in enumerate(SourceFactory.create_batch(25)):
+        for instance in SourceFactory.create_batch(25):
             instance.save()
 
         rv = client.get("/v1/sources")
@@ -421,7 +437,7 @@ class TestCategories:
     def test_endpoint(self, app, client):
         """Test a successful request."""
 
-        for i, instance in enumerate(CategoryFactory.create_batch(8)):
+        for instance in CategoryFactory.create_batch(8):
             instance.save()
 
         rv = client.get("/v1/categories")
@@ -430,6 +446,50 @@ class TestCategories:
         json_data = rv.get_json()
 
         assert len(json_data["categories"]) == 8
+
+
+@pytest.mark.usefixtures("db")
+class TestSearch:
+    """Test search endpoint."""
+
+    def test_endpoint(self, app, client, feed):
+        """Test a successful request."""
+
+        posts = [
+            "Jived fox nymph grabs quick waltz.",
+            "Glib jocks quiz nymph to vex dwarf.",
+            "Sphinx of black quartz, judge my vow.",
+            "How vexingly quick daft zebras jump.",
+            "Jackdaws love my big sphinx of quartz.",
+        ]
+
+        for i, post in enumerate(posts):
+            p = Post.create(
+                feed=feed, title=post, desc=post, link="link{}.com".format(i)
+            )
+            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
+
+        with app.app_context():
+            rv = client.get("/v1/search?query=nymph")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 2
+
+        with app.app_context():
+            rv = client.get("/v1/search?query=nymph dwarf")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 1
+
+        with app.app_context():
+            rv = client.get("/v1/search?query=quartz")
+            json_data = rv.get_json()
+            assert json_data["total_items"] == 2
+
+    def test_missing_term(self, app, client, feed):
+        """Test a missing search term."""
+        rv = client.get("/v1/search")
+        assert rv.status_code == 400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "No search terms provided."
 
 
 @pytest.mark.usefixtures("db")
@@ -500,7 +560,6 @@ class TestAuthLogin:
         assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Unable to complete login."
-        assert "errors" in json_data
 
     def test_missing_password(self, app, client, user):
         """Test a request with no password."""
@@ -508,7 +567,6 @@ class TestAuthLogin:
         assert rv.status_code == 400
         json_data = rv.get_json()
         assert json_data["msg"] == "Unable to complete login."
-        assert "errors" in json_data
 
     def test_invalid_method(self, app, client, user):
         """Test a request with an invalid HTTP method."""
