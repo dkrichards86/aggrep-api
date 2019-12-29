@@ -4,7 +4,9 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import Category, Feed, Post, PostAction, PostView, Source
+from aggrep.models import (
+    Bookmark, Category, Feed, Post, PostAction, PostView, Similarity, Source,
+)
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -365,6 +367,237 @@ class TestCategoryPosts:
 
 
 @pytest.mark.usefixtures("db")
+class TestSearch:
+    """Test search endpoint."""
+
+    def test_endpoint(self, app, client, feed):
+        """Test a successful request."""
+
+        posts = [
+            "Jived fox nymph grabs quick waltz.",
+            "Glib jocks quiz nymph to vex dwarf.",
+            "Sphinx of black quartz, judge my vow.",
+            "How vexingly quick daft zebras jump.",
+            "Jackdaws love my big sphinx of quartz.",
+        ]
+
+        for i, post in enumerate(posts):
+            p = Post.create(
+                feed=feed, title=post, desc=post, link="link{}.com".format(i)
+            )
+            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
+
+        rv = client.get("/v1/search?query=nymph")
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 2
+
+        rv = client.get("/v1/search?query=nymph dwarf")
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 1
+
+        rv = client.get("/v1/search?query=quartz")
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 2
+
+    def test_missing_term(self, app, client, feed):
+        """Test a missing search term."""
+        rv = client.get("/v1/search")
+        assert rv.status_code == 400
+        json_data = rv.get_json()
+        assert json_data["msg"] == "No search terms provided."
+
+
+@pytest.mark.usefixtures("db")
+class TestSimilar:
+    """Test similar posts endpoint."""
+
+    def test_endpoint(self, app, client):
+        """Test a successful request."""
+
+        posts = []
+        for instance in PostFactory.create_batch(5):
+            posts.append(instance)
+            instance.save()
+
+        Similarity.create(source_id=posts[0].id, related_id=posts[2].id)
+        Similarity.create(source_id=posts[0].id, related_id=posts[3].id)
+        Similarity.create(source_id=posts[0].id, related_id=posts[4].id)
+        Similarity.create(source_id=posts[1].id, related_id=posts[0].id)
+        Similarity.create(source_id=posts[1].id, related_id=posts[2].id)
+        Similarity.create(source_id=posts[2].id, related_id=posts[1].id)
+
+        rv = client.get("/v1/similar/{}".format(posts[0].uid))
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 4
+
+        rv = client.get("/v1/similar/{}".format(posts[1].uid))
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 3
+
+        rv = client.get("/v1/similar/{}".format(posts[2].uid))
+        json_data = rv.get_json()
+        assert json_data["total_items"] == 2
+
+
+@pytest.mark.usefixtures("db")
+class TestBookmarkedPosts:
+    """Test bookmarked posts endpoint."""
+
+    def test_endpoint(self, app, user, client):
+        """Test a successful request."""
+
+        for i, instance in enumerate(PostFactory.create_batch(25)):
+            instance.save()
+            if i % 5 == 0:
+                Bookmark.create(user_id=user.id, post_id=instance.id)
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+        rv = client.get("/v1/bookmarks", headers={"Authorization": token})
+
+        assert rv.status_code == 200
+        json_data = rv.get_json()
+
+        assert json_data["title"] == "Bookmarked Posts"
+        assert len(json_data["items"]) == 5
+        assert json_data["page"] == 1
+        assert json_data["per_page"] == 20
+        assert json_data["total_pages"] == 1
+        assert json_data["total_items"] == 5
+
+@pytest.mark.usefixtures("db")
+class TestBookmarkedIDs:
+    """Test bookmark IDs endpoint."""
+
+    def test_endpoint(self, app, user, client):
+            """Test a successful request."""
+
+            for i, instance in enumerate(PostFactory.create_batch(25)):
+                instance.save()
+                if i % 5 == 0:
+                    Bookmark.create(user_id=user.id, post_id=instance.id)
+
+            with app.app_context():
+                token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.get("/v1/bookmarks/ids", headers={"Authorization": token})
+
+            assert rv.status_code == 200
+            json_data = rv.get_json()
+
+            assert len(json_data["bookmarks"]) == 5
+
+    def test_post_view(self, app, post, user, client):
+        """Test a successful POST request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.post(
+                "/v1/bookmarks/ids", json=dict(uid=post.uid), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 200
+            json_data = rv.get_json()
+            assert json_data['msg'] == "Bookmark saved!"
+            assert len(json_data["bookmarks"]) == 1
+            assert user.bookmarks.count() == 1
+
+    def test_post_view_no_uid(self, app, post, user, client):
+        """Test an unsuccessful POST request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            Bookmark.create(user_id=user.id, post_id=post.id)
+
+            rv = client.post(
+                "/v1/bookmarks/ids", json=dict(), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 400
+
+    def test_post_view_invalid_uid(self, app, post, user, client):
+        """Test an unsuccessful POST request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.post(
+                "/v1/bookmarks/ids", json=dict(uid='mmmmmm'), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 400
+
+    def test_post_view_duplicate_id(self, app, post, user, client):
+        """Test a successful POST request."""
+
+        with app.app_context():
+            Bookmark.create(user_id=user.id, post_id=post.id)
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.post(
+                "/v1/bookmarks/ids", json=dict(uid=post.uid), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 200
+            json_data = rv.get_json()
+            assert len(json_data["bookmarks"]) == 1
+            assert user.bookmarks.count() == 1
+
+    def test_delete_view(self, app, post, user, client):
+        """Test a successful DELETE request."""
+
+        with app.app_context():
+            Bookmark.create(user_id=user.id, post_id=post.id)
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.delete(
+                "/v1/bookmarks/ids", json=dict(uid=post.uid), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 200
+            json_data = rv.get_json()
+            assert json_data['msg'] == "Bookmark removed!"
+            assert len(json_data["bookmarks"]) == 0
+            assert user.bookmarks.count() == 0
+
+    def test_delete_view_no_uid(self, app, post, user, client):
+        """Test an unsuccessful DELETE request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            Bookmark.create(user_id=user.id, post_id=post.id)
+
+            rv = client.delete(
+                "/v1/bookmarks/ids", json=dict(), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 400
+
+    def test_delete_view_invalid_uid(self, app, post, user, client):
+        """Test an unsuccessful DELETE request."""
+
+        with app.app_context():
+            token = "Bearer {}".format(create_access_token(user.email))
+
+            rv = client.delete(
+                "/v1/bookmarks/ids", json=dict(uid='mmmmmm'), headers={"Authorization": token}
+            )
+
+            assert rv.status_code == 400
+
+    def test_no_auth(self, app, client, user):
+        """Test a request with no auth token."""
+        rv = client.get("/v1/bookmarks/ids")
+        assert rv.status_code == 401
+        json_data = rv.get_json()
+        assert json_data["msg"] == "Missing Authorization Header"
+
+
+@pytest.mark.usefixtures("db")
 class TestViewedPosts:
     """Test viewed posts endpoint."""
 
@@ -446,50 +679,6 @@ class TestCategories:
         json_data = rv.get_json()
 
         assert len(json_data["categories"]) == 8
-
-
-@pytest.mark.usefixtures("db")
-class TestSearch:
-    """Test search endpoint."""
-
-    def test_endpoint(self, app, client, feed):
-        """Test a successful request."""
-
-        posts = [
-            "Jived fox nymph grabs quick waltz.",
-            "Glib jocks quiz nymph to vex dwarf.",
-            "Sphinx of black quartz, judge my vow.",
-            "How vexingly quick daft zebras jump.",
-            "Jackdaws love my big sphinx of quartz.",
-        ]
-
-        for i, post in enumerate(posts):
-            p = Post.create(
-                feed=feed, title=post, desc=post, link="link{}.com".format(i)
-            )
-            PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-
-        with app.app_context():
-            rv = client.get("/v1/search?query=nymph")
-            json_data = rv.get_json()
-            assert json_data["total_items"] == 2
-
-        with app.app_context():
-            rv = client.get("/v1/search?query=nymph dwarf")
-            json_data = rv.get_json()
-            assert json_data["total_items"] == 1
-
-        with app.app_context():
-            rv = client.get("/v1/search?query=quartz")
-            json_data = rv.get_json()
-            assert json_data["total_items"] == 2
-
-    def test_missing_term(self, app, client, feed):
-        """Test a missing search term."""
-        rv = client.get("/v1/search")
-        assert rv.status_code == 400
-        json_data = rv.get_json()
-        assert json_data["msg"] == "No search terms provided."
 
 
 @pytest.mark.usefixtures("db")

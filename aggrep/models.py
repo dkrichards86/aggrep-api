@@ -57,7 +57,7 @@ class PaginatedAPIMixin:
     """Pagination mixin."""
 
     @staticmethod
-    def to_collection_dict(query, page, per_page, **kwargs):
+    def to_collection_dict(query, page, per_page):
         """Paginate a collection."""
         resources = query.paginate(page, per_page, False)
         data = {
@@ -152,8 +152,10 @@ class Post(BaseModel, PaginatedAPIMixin):
     similar_posts = db.relationship(
         "Post",
         secondary="similarities",
-        primaryjoin="Post.id==Similarity.related_id",
-        secondaryjoin="Similarity.source_id==Post.id",
+        # primaryjoin="Post.id==Similarity.related_id",
+        # secondaryjoin="Similarity.source_id==Post.id",
+        primaryjoin="Post.id==Similarity.source_id",
+        secondaryjoin="Post.id==Similarity.related_id",
         lazy="dynamic",
     )
 
