@@ -1,5 +1,5 @@
 """App views module."""
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -43,7 +43,7 @@ from aggrep.api.posts import (
 )
 from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
 from aggrep.models import Bookmark, Category, Post, PostAction, PostView, Source, User
-from aggrep.utils import build_search_query, get_cache_key, now
+from aggrep.utils import build_search_query, get_cache_key
 
 app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
@@ -295,7 +295,10 @@ def bookmarked_posts():
             register_impression(p.id)
 
         title = "Bookmarked Posts"
-        return jsonify(**Post.to_collection_dict(posts, page, per_page), title=title), 200
+        return (
+            jsonify(**Post.to_collection_dict(posts, page, per_page), title=title),
+            200,
+        )
 
 
 @api.route("/bookmarks/ids", methods=["GET", "POST", "DELETE"])
@@ -370,7 +373,10 @@ def viewed_posts():
             register_impression(p.id)
 
         title = "Recently Viewed Posts"
-        return jsonify(**Post.to_collection_dict(posts, 1, N_RECENT_POSTS), title=title), 200
+        return (
+            jsonify(**Post.to_collection_dict(posts, 1, N_RECENT_POSTS), title=title),
+            200,
+        )
     elif request.method == "POST":
         payload = request.get_json() or {}
         uid = payload.get("uid")
@@ -558,7 +564,6 @@ def auth_email_update():
     form = UpdateEmailForm(MultiDict(request.get_json()))
     if form.validate():
         current_user.update(email=form.email.data, confirmed=False)
-
         token = current_user.get_email_confirm_token()
         email_data = dict(
             subject="[Aggregate Report] Confirm your email!",
@@ -708,7 +713,7 @@ def auth_password_reset():
             send_email(email_data)
 
             payload = dict(
-                msg="A confirmation link has been sent to your email address."
+                msg="A password reset link has been sent to your email address."
             )
             return jsonify(payload), 200
         else:

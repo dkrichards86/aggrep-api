@@ -83,9 +83,7 @@ class TestPosts:
         feed = Feed.create(source=src, category=cat, url="feed.com")
 
         for i, post in enumerate(posts):
-            Post.create(
-                feed=feed, title=post, desc=post, link="link{}.com".format(i)
-            )
+            Post.create(feed=feed, title=post, desc=post, link="link{}.com".format(i))
 
         assert get_posts_by_search(build_search_query("nymph")).count() == 2
         assert get_posts_by_search(build_search_query("nymph dwarf")).count() == 1
