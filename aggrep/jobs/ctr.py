@@ -29,7 +29,9 @@ class CTR(Job):
         delta = now() - timedelta(days=1)
 
         return PostAction.query.filter(
-            PostAction.post.has(Post.published_datetime < delta), PostAction.ctr != 0
+            PostAction.post.has(Post.published_datetime < delta),
+            PostAction.impressions > 0,
+            PostAction.clicks > 0,
         ).all()
 
     def run(self):

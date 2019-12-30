@@ -1,5 +1,5 @@
 """App views module."""
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -17,7 +17,6 @@ from flask_jwt_extended import (
     jwt_optional,
     jwt_required,
 )
-from sqlalchemy import desc
 from werkzeug.datastructures import MultiDict
 
 from aggrep import cache
@@ -31,23 +30,20 @@ from aggrep.api.forms import (
     UpdateEmailForm,
     UpdatePasswordForm,
 )
-from aggrep.models import (
-    Bookmark,
-    Category,
-    Feed,
-    Post,
-    PostAction,
-    PostView,
-    Source,
-    User,
+from aggrep.api.posts import (
+    filter_user_categories,
+    filter_user_sources,
+    get_all_posts,
+    get_posts_by_category,
+    get_posts_by_search,
+    get_posts_by_source,
+    get_similar_posts,
+    limit_posts,
+    sort_posts,
 )
-from aggrep.utils import get_cache_key, now
-
-N_RECENT_POSTS = 10
-POST_LIMIT = 500
-POPULAR = "popular"
-LATEST = "latest"
-RELEVANT = "relevant"
+from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
+from aggrep.models import Bookmark, Category, Post, PostAction, PostView, Source, User
+from aggrep.utils import build_search_query, get_cache_key
 
 app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
@@ -69,16 +65,6 @@ def error_handler_400(e):
 
 
 # === Route Helpers === #
-
-
-def sort_posts(posts, sort):
-    """Sort posts by a predefined format."""
-    if sort == POPULAR:
-        posts = posts.order_by(desc(Post.ctr), desc(Post.published_datetime))
-    else:
-        posts = posts.order_by(desc(Post.published_datetime))
-
-    return posts
 
 
 def register_impression(post_id):
@@ -125,20 +111,13 @@ def all_posts():
     cached = cache.get(cache_key)
 
     if cached is None:
-        delta = now() - timedelta(days=7)
-        posts = Post.query.filter(Post.published_datetime >= delta)
+        posts = get_all_posts()
 
         if current_user:
-            sources = [s.id for s in current_user.excluded_sources]
-            categories = [c.id for c in current_user.excluded_categories]
-            posts = posts.filter(
-                Post.feed.has(Feed.category.has(Category.id.notin_(categories))),
-                Post.feed.has(Feed.source.has(Source.id.notin_(sources))),
-            )
+            posts = filter_user_categories(posts, current_user)
+            posts = filter_user_sources(posts, current_user)
 
-        posts = (
-            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
-        )
+        posts = limit_posts(posts)
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -171,26 +150,17 @@ def posts_by_source(source):
     cached = cache.get(cache_key)
 
     if cached is None:
-        delta = now() - timedelta(days=7)
         src = Source.query.filter_by(slug=source).first()
 
         if src is None:
             abort(400, "Source '{}' does not exist.".format(source))
 
-        posts = Post.query.filter(
-            Post.published_datetime >= delta,
-            Post.feed.has(Feed.source.has(Source.slug == source)),
-        )
+        posts = get_posts_by_source(src)
 
         if current_user:
-            categories = [c.id for c in current_user.excluded_categories]
-            posts = posts.filter(
-                Post.feed.has(Feed.category.has(Category.id.notin_(categories)))
-            )
+            posts = filter_user_categories(posts, current_user)
 
-        posts = (
-            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
-        )
+        posts = limit_posts(posts)
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -198,9 +168,7 @@ def posts_by_source(source):
         else:
             title = "Latest Posts by {}".format(src.title)
 
-        cached = dict(
-            **Post.to_collection_dict(posts, page, per_page, source=source), title=title
-        )
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=60)
 
     for item in cached["items"]:
@@ -225,26 +193,17 @@ def posts_by_category(category):
     cached = cache.get(cache_key)
 
     if cached is None:
-        delta = now() - timedelta(days=7)
         cat = Category.query.filter_by(slug=category).first()
 
         if cat is None:
             abort(400, "Category '{}' does not exist.".format(category))
 
-        posts = Post.query.filter(
-            Post.published_datetime >= delta,
-            Post.feed.has(Feed.category.has(Category.slug == category)),
-        )
+        posts = get_posts_by_category(cat)
 
         if current_user:
-            sources = [s.id for s in current_user.excluded_sources]
-            posts = posts.filter(
-                Post.feed.has(Feed.source.has(Source.id.notin_(sources)))
-            )
+            posts = filter_user_sources(posts, current_user)
 
-        posts = (
-            posts.order_by(desc(Post.published_datetime)).limit(POST_LIMIT).from_self()
-        )
+        posts = limit_posts(posts)
         posts = sort_posts(posts, sort)
 
         if sort == POPULAR:
@@ -252,10 +211,7 @@ def posts_by_category(category):
         else:
             title = "Latest Posts in {}".format(cat.title)
 
-        cached = dict(
-            **Post.to_collection_dict(posts, page, per_page, category=category),
-            title=title,
-        )
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=60)
 
     for item in cached["items"]:
@@ -279,16 +235,12 @@ def similar_posts(uid):
     cached = cache.get(cache_key)
 
     if cached is None:
-        _post = Post.from_uid(uid)
-        source_post = Post.query.filter(Post.id == _post.id)
-        posts = source_post.union(_post.similar_posts)
+        posts = get_similar_posts(uid)
         posts = sort_posts(posts, sort)
 
         title = "More Coverage"
 
-        cached = dict(
-            **Post.to_collection_dict(posts, page, per_page, uid=uid), title=title
-        )
+        cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
         cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
@@ -316,12 +268,7 @@ def search_posts():
     cached = cache.get(cache_key)
 
     if cached is None:
-        delta = now() - timedelta(days=7)
-        searchable_posts = Post.query.filter(Post.published_datetime >= delta)
-
-        query = " & ".join(term.split(" "))
-
-        posts = Post.search(searchable_posts, query)
+        posts = get_posts_by_search(build_search_query(term))
 
         title = "Search Results"
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
@@ -347,11 +294,9 @@ def bookmarked_posts():
         for p in posts:
             register_impression(p.id)
 
+        title = "Bookmarked Posts"
         return (
-            jsonify(
-                **Post.to_collection_dict(posts, page, per_page),
-                title="Bookmarked Posts",
-            ),
+            jsonify(**Post.to_collection_dict(posts, page, per_page), title=title),
             200,
         )
 
@@ -369,11 +314,11 @@ def bookmarked_post_ids():
         uid = payload.get("uid")
 
         if uid is None:
-            return jsonify(msg="No post UID provided."), 400
+            return abort(400, "No post UID provided.")
 
         post = Post.from_uid(uid)
         if post is None:
-            return jsonify(msg="Post UID is invalid."), 400
+            return abort(400, "Post UID is invalid.")
 
         is_bookmarked = Bookmark.query.filter_by(
             user_id=current_user.id, post_id=post.id
@@ -389,11 +334,16 @@ def bookmarked_post_ids():
             ),
             200,
         )
-
     elif request.method == "DELETE":
         payload = request.get_json() or {}
         uid = payload.get("uid")
+
+        if uid is None:
+            return abort(400, "No post UID provided.")
+
         post = Post.from_uid(uid)
+        if post is None:
+            return abort(400, "Post UID is invalid.")
 
         instance = Bookmark.query.filter_by(
             user_id=current_user.id, post_id=post.id
@@ -422,11 +372,9 @@ def viewed_posts():
         for p in posts:
             register_impression(p.id)
 
+        title = "Recently Viewed Posts"
         return (
-            jsonify(
-                **Post.to_collection_dict(posts, 1, N_RECENT_POSTS),
-                title="Recently Viewed Posts",
-            ),
+            jsonify(**Post.to_collection_dict(posts, 1, N_RECENT_POSTS), title=title),
             200,
         )
     elif request.method == "POST":
@@ -616,7 +564,6 @@ def auth_email_update():
     form = UpdateEmailForm(MultiDict(request.get_json()))
     if form.validate():
         current_user.update(email=form.email.data, confirmed=False)
-
         token = current_user.get_email_confirm_token()
         email_data = dict(
             subject="[Aggregate Report] Confirm your email!",
@@ -766,7 +713,7 @@ def auth_password_reset():
             send_email(email_data)
 
             payload = dict(
-                msg="A confirmation link has been sent to your email address."
+                msg="A password reset link has been sent to your email address."
             )
             return jsonify(payload), 200
         else:
