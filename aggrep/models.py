@@ -2,10 +2,14 @@
 import short_url
 from flask import current_app, url_for
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy_searchable import make_searchable
+from sqlalchemy_utils.types import TSVectorType
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from aggrep import db
 from aggrep.utils import decode_token, encode_token, now
+
+make_searchable(db.metadata)
 
 
 class PKMixin:
@@ -53,7 +57,7 @@ class PaginatedAPIMixin:
     """Pagination mixin."""
 
     @staticmethod
-    def to_collection_dict(query, page, per_page, **kwargs):
+    def to_collection_dict(query, page, per_page):
         """Paginate a collection."""
         resources = query.paginate(page, per_page, False)
         data = {
@@ -67,7 +71,7 @@ class PaginatedAPIMixin:
 
 
 class Category(BaseModel):
-    """Category."""
+    """Category model."""
 
     __tablename__ = "categories"
     slug = db.Column(db.String(32), unique=True, nullable=False)
@@ -132,12 +136,13 @@ class Post(BaseModel, PaginatedAPIMixin):
 
     __tablename__ = "posts"
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"))
-    title = db.Column(db.String(255), nullable=False)
-    desc = db.Column(db.Text())
+    title = db.Column(db.Unicode(255), nullable=False)
+    desc = db.Column(db.UnicodeText)
     link = db.Column(db.String(255), nullable=False)
     published_datetime = db.Column(db.DateTime, nullable=False, default=now, index=True)
     ingested_datetime = db.Column(db.DateTime, nullable=False, default=now)
     actions = db.relationship("PostAction", uselist=False, backref="posts")
+    search_vector = db.Column(TSVectorType("title", "desc"))
 
     feed = db.relationship("Feed", uselist=False, backref="posts")
 
@@ -147,12 +152,21 @@ class Post(BaseModel, PaginatedAPIMixin):
     similar_posts = db.relationship(
         "Post",
         secondary="similarities",
-        primaryjoin="Post.id==Similarity.related_id",
-        secondaryjoin="Similarity.source_id==Post.id",
+        # primaryjoin="Post.id==Similarity.related_id",
+        # secondaryjoin="Similarity.source_id==Post.id",
+        primaryjoin="Post.id==Similarity.source_id",
+        secondaryjoin="Post.id==Similarity.related_id",
         lazy="dynamic",
     )
 
     enqueued_similartities = db.relationship("SimilarityProcessQueue", backref="post")
+
+    @staticmethod
+    def search(query, search_terms):
+        """Search a post collection for search terms."""
+        return query.from_self().filter(
+            Post.search_vector.op("@@")(db.func.to_tsquery(search_terms))
+        )
 
     @property
     def uid(self):

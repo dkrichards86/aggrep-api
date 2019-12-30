@@ -6,6 +6,7 @@ import jwt
 import pytest
 
 from aggrep.utils import (
+    build_search_query,
     decode_token,
     encode_token,
     get_cache_key,
@@ -66,3 +67,13 @@ class TestUtils(TestCase):
 
         k2 = get_cache_key("endpoint", None, 2, 10, "popular")
         assert k2 == "endpoint_anonymous_2_10_popular"
+
+    def test_build_search_query(self):
+        """Test building a search query."""
+        assert build_search_query("search") == "search"
+        assert build_search_query(" search") == "search"
+        assert build_search_query("search ") == "search"
+        assert build_search_query("search query") == "search & query"
+        assert build_search_query("search !query") == "search & !query"
+        assert build_search_query("search  query") == "search & query"
+        assert build_search_query("  search     query       ") == "search & query"

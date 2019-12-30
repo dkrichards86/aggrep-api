@@ -55,3 +55,9 @@ def get_cache_key(endpoint, identity, page, per_page, sort, route_arg=None):
         cache_key = "{}_{}".format(cache_key, route_arg)
 
     return cache_key
+
+
+def build_search_query(query):
+    """Build a search query from space separated tokens."""
+    query = re.sub(r"\s+", " ", query.strip())
+    return " & ".join([token for token in query.split(" ")])

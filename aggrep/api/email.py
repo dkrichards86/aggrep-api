@@ -6,7 +6,7 @@ from aggrep import mail
 
 
 def send_email(data):
-    """Send an email asynchronously."""
+    """Send an email synchronously."""
 
     message = dict(
         subject=data["subject"],
