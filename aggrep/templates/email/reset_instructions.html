@@ -1,15 +1,26 @@
 {% extends "email/base.html" %}
 
 {% block content %}
-<p>
-    Hi there, {{ user.email }}!
-</p>
-<p>
-    To reset your password <a href="{{ui_url}}/reset/{{token}}">click here</a>.
-</p>
-<p>
-    If you have not requested a password reset simply ignore this message.
-</p>
-<p>Sincerely,</p>
-<p>The Aggregate Report Team</p>
+<p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">Hi there, {{ user.email }}!</p>
+<p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">To reset your password, please click the link below.</p>
+<table border="0" cellpadding="0" cellspacing="0" class="btn btn-primary" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box;">
+    <tbody>
+    <tr>
+        <td align="left" style="font-family: sans-serif; font-size: 14px; vertical-align: top; padding-bottom: 15px;">
+        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: auto;">
+            <tbody>
+            <tr>
+                <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; background-color: #34495E; border-radius: 5px; text-align: center;">
+                    <a href="{{ui_url}}/reset/{{token}}" target="_blank" style="display: inline-block; color: #FAFAFA; background-color: #34495E; border: solid 1px #34495E; border-radius: 5px; box-sizing: border-box; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-transform: capitalize; border-color: #34495E;">Click here to reset your password.</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">If you have not requested a password reset simply ignore this message.</p>
+<p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">Sincerely,</p>
+<p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">The Aggregate Report Team</p>
 {% endblock %}
