@@ -132,7 +132,6 @@ class Processor(Job):
             batch = enqueued_posts[start:end]
             new_entities += self.process_batch(batch)
             start = end
-            break
 
         current_app.logger.info("Unlocking processor.")
         self.lock.remove()
