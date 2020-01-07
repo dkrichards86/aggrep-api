@@ -38,6 +38,7 @@ services:
       - ./.env:/code/.env
       - ./autoapp.py:/code/autoapp.py
       - ./config.py:/code/config.py
+      - ./feeds.csv:/code/feeds.csv
       - ./setup.cfg:/code/setup.cfg
       - ./wait-for-postgres.sh:/code/wait-for-postgres.sh
     depends_on:
