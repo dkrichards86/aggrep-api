@@ -36,10 +36,22 @@ def register_blueprints(app):
 
 def register_commands(app):
     """Register CLI commands."""
-    from aggrep.commands import test, lint, seed, collect, process, relate, updatestats
+    from aggrep.commands import (
+        test,
+        lint,
+        seed,
+        collect,
+        process,
+        relate,
+        updatestats,
+        add_feeds,
+        seed_categories,
+    )
 
     app.cli.add_command(test)
     app.cli.add_command(lint)
+    app.cli.add_command(seed_categories)
+    app.cli.add_command(add_feeds)
     app.cli.add_command(seed)
     app.cli.add_command(collect)
     app.cli.add_command(process)

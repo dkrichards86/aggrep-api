@@ -174,3 +174,83 @@ https://www.latimes.com/politics/rss2.0.xml,News,LA Times
 https://www.latimes.com/business/rss2.0.xml,Business,LA Times,
 https://www.latimes.com/entertainment-arts/rss2.0.xml,Entertainment,LA Times
 https://www.latimes.com/science/rss2.0.xml,Science,LA Times
+http://www.independent.co.uk/news/world/rss,News,Independent
+http://www.independent.co.uk/news/business/rss,Business,Independent
+http://www.independent.co.uk/news/science/rss,Science,Independent
+https://www.theatlantic.com/feed/channel/national/,News,The Atlantic
+https://www.theatlantic.com/feed/channel/international/,News,The Atlantic
+https://www.theatlantic.com/feed/channel/politics/,News,The Atlantic
+https://www.theatlantic.com/feed/channel/technology/,Technology,The Atlantic
+https://www.theatlantic.com/feed/channel/entertainment/,Entertainment,The Atlantic
+https://www.theatlantic.com/feed/channel/science/,Science,The Atlantic
+https://www.theatlantic.com/feed/channel/business/,Business,The Atlantic
+http://www.vh1.com/news/rss,Entertainment,VH1
+http://en.espnf1.com/rss/motorsport/story/feeds/0.xml?type=2,Sports,ESPN
+https://markets.businessinsider.com/rss/news,Business,Business Insider
+https://www.newrepublic.com/rss.xml,News,New Republic
+http://feeds.feedburner.com/BreakingScienceNews?format=xml,Science,Sci News
+https://feedpress.me/drudgereportfeed,News,Drudge Report
+http://www.insideedition.com/interfaces/rss,Entertainment,Inside Edition
+https://feeds.feedburner.com/venturebeat/SZYF,Technology,Venture Beat
+https://www.cnet.com/rss/news/,Technology,CNet
+https://www.telegraph.co.uk/news/rss.xml,News,Telegraph
+https://www.telegraph.co.uk/politics/rss.xml,News,Telegraph
+https://www.telegraph.co.uk/business/rss.xml,Business,Telegraph
+https://www.telegraph.co.uk/money/rss.xml,Business,Telegraph
+https://www.telegraph.co.uk/technology/rss.xml,Technology,Telegraph
+https://www.telegraph.co.uk/science/rss.xml,Science,Telegraph
+https://www.telegraph.co.uk/sport/rss.xml,Sports,Telegraph
+http://www.nydailynews.com/cmlink/NYDN.Sports.rss,Sports,New York Daily News
+http://www.nydailynews.com/cmlink/NYDN.News.National.rss,News,New York Daily News
+http://www.nydailynews.com/cmlink/NYDN.News.World.rss,News,New York Daily News
+http://www.nydailynews.com/cmlink/NYDN.News.Politics.rss,News,New York Daily News
+http://www.nydailynews.com/cmlink/NYDN.Entertainment.rss,Entertainment,New York Daily News
+http://www.nydailynews.com/cmlink/NYDN.Life_Style.Health.rss,Health,New York Daily News
+http://nymag.com/rss/Business_and_Money.xml,Business,NYMag
+http://nymag.com/rss/People.xml,Entertainment,NYMag
+http://nymag.com/rss/Politics.xml,News,NYMag
+http://nymag.com/rss/Sports.xml,Sports,NYMag
+http://nymag.com/rss/Tech.xml,Technology,NYMag
+http://feeds.mashable.com/Mashable,Entertainment,Mashable
+https://www.polygon.com/rss/index.xml,Entertainment,Polygon
+https://www.aljazeera.com/xml/rss/all.xml,News,Al Jazeera
+https://www.rt.com/rss/usa/,News,Russia Today
+https://www.rt.com/rss/news/,News,Russia Today
+https://www.rt.com/rss/business/,Business,Russia Today
+https://www.rt.com/rss/sport/,Sports,Russia Today
+http://www.france24.com/en/americas/rss,News,France24
+http://www.france24.com/en/business-tech/rss,Business,France24
+http://www.france24.com/en/culture/rss,Entertainment,France24
+http://feeds.skynews.com/feeds/rss/world.xml,News,Sky News
+http://feeds.skynews.com/feeds/rss/us.xml,News,Sky News
+http://feeds.skynews.com/feeds/rss/business.xml,Business,Sky News
+http://feeds.skynews.com/feeds/rss/politics.xml,News,Sky News
+http://feeds.skynews.com/feeds/rss/technology.xml,Technology,Sky News
+http://feeds.skynews.com/feeds/rss/entertainment.xml,Entertainment,Sky News
+https://news.ycombinator.com/rss,Technology,Y Combinator
+https://www.dailymail.co.uk/news/index.rss,News,Daily Mail
+https://www.dailymail.co.uk/ushome/index.rss,News,Daily Mail
+https://www.dailymail.co.uk/sport/index.rss,Sports,Daily Mail
+https://www.dailymail.co.uk/tvshowbiz/index.rss,Entertainment,Daily Mail
+https://www.dailymail.co.uk/sciencetech/index.rss,Science,Daily Mail
+https://www.dailymail.co.uk/money/index.rss,Business,Daily Mail
+http://feeds.feedburner.com/realclearpolitics/qlMj,News,Real Clear Politics
+https://feeds.thedailybeast.com/rss/articles,News,Daily Beast
+https://www.cbsnews.com/latest/rss/us,News,CBS News
+https://www.cbsnews.com/latest/rss/world,News,CBS News
+https://www.cbsnews.com/latest/rss/politics,News,CBS News
+https://www.cbsnews.com/latest/rss/science,Science,CBS News
+https://www.cbsnews.com/latest/rss/technology,Technology,CBS News
+https://www.cbsnews.com/latest/rss/health,Health,CBS News
+https://www.cbsnews.com/latest/rss/entertainment,Entertainment,CBS News
+http://feeds.nbcnews.com/nbcnews/public/news,News,NBC News
+https://www.politifact.com/feeds/articles/truth-o-meter/,News,Politifact
+http://www.observer.com/feed,News,Observer
+https://www.usnews.com/rss/news,News,US News
+https://www.usnews.com/rss/health,Health,US News
+https://www.usnews.com/rss/money,Business,US News
+https://thinkprogress.org/feed,News,Think Progress
+http://feeds.feedburner.com/variety/headlines,Entertainment,Variety
+http://pandodaily.com/feed/,Technology,Pando Daily
+https://profootballtalk.nbcsports.com/atom.xml,Sports,Pro Football Talk
+https://www.cbssports.com/rss/headlines/,News,CBS Sports

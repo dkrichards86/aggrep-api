@@ -7,9 +7,9 @@ from subprocess import call
 
 import click
 from environs import Env
+from flask import current_app
 from flask.cli import with_appcontext
 
-from aggrep import db
 from aggrep.models import Category, Feed, Source, Status
 from aggrep.utils import slugify
 
@@ -97,8 +97,42 @@ def lint(fix_imports, check):
 
 @click.command()
 @with_appcontext
-def seed():
-    """Seed the database with categories, feeds, and a default user."""
+def add_feeds():
+    """Add new feeds to the database."""
+    filepath = os.path.join(PROJECT_ROOT, "feeds.csv")
+
+    status_time = datetime.now(timezone.utc)
+    status_offset = status_time - timedelta(days=1)
+
+    feed_cache = set([f.url for f in Feed.query.all()])
+
+    with open(filepath) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row["url"] not in feed_cache:
+                category = Category.query.filter_by(title=row["category"]).first()
+                if not category:
+                    current_app.logger.info("No category '{}'".format(row["category"]))
+                source = Source.query.filter_by(title=row["source"]).first()
+                if not source:
+                    current_app.logger.info("Adding source '{}'".format(row["source"]))
+                    source = Source.create(
+                        title=row["source"], slug=slugify(row["source"])
+                    )
+
+                feed = Feed.create(
+                    category_id=category.id, source_id=source.id, url=row["url"]
+                )
+                Status.create(
+                    feed_id=feed.id, update_datetime=status_offset, update_frequency=3
+                )
+                feed_cache.add(row["url"])
+
+
+@click.command()
+@with_appcontext
+def seed_categories():
+    """Seed the database with categories."""
     categories = (
         "News",
         "Business",
@@ -113,27 +147,13 @@ def seed():
         if not c:
             Category.create(title=cat, slug=slugify(cat))
 
-    filepath = os.path.join(PROJECT_ROOT, "feeds.csv")
 
-    status_time = datetime.now(timezone.utc)
-    status_offset = status_time - timedelta(days=1)
-
-    with open(filepath) as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            category = Category.query.filter_by(title=row["category"]).first()
-            source = Source.query.filter_by(title=row["source"]).first()
-            if not source:
-                source = Source.create(title=row["source"], slug=slugify(row["source"]))
-
-            feed = Feed.create(
-                category_id=category.id, source_id=source.id, url=row["url"]
-            )
-            Status.create(
-                feed_id=feed.id, update_datetime=status_offset, update_frequency=3
-            )
-
-    db.session.commit()
+@click.command()
+@with_appcontext
+def seed():
+    """Seed the database with categories and feeds."""
+    seed_categories()
+    add_feeds()
 
 
 @click.command()
