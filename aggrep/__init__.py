@@ -2,7 +2,6 @@
 import logging
 import sys
 
-from celery import Celery
 from environs import Env
 from flask import Flask
 from flask_caching import Cache
@@ -21,7 +20,6 @@ db = SQLAlchemy()
 migrate = Migrate(directory="migrations")
 cache = Cache()
 mail = SendGrid()
-celery = Celery()
 jwt = JWTManager()
 
 
