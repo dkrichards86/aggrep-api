@@ -25,12 +25,6 @@ class Config:
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = "{}/{}".format(_CACHE_HOST, _CACHE_DB)
 
-    _CELERY_HOST = env.str("REDIS_URL", "")
-    _CELERY_DB = 1
-    _CELERY_URL = "{}/{}".format(_CELERY_HOST, _CELERY_DB)
-    CELERY_BROKER_URL = _CELERY_URL
-    CELERY_RESULT_BACKEND = _CELERY_URL
-
     SENDGRID_DEFAULT_FROM = env.str("SENDGRID_DEFAULT_FROM", "")
     SENDGRID_API_KEY = env.str("SENDGRID_API_KEY", "")
 
