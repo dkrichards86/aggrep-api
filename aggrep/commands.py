@@ -168,15 +168,6 @@ def collect(days=1):
 
 @click.command()
 @with_appcontext
-def process():
-    """Process recent posts."""
-    from aggrep.jobs.process import process_entities
-
-    process_entities()
-
-
-@click.command()
-@with_appcontext
 def relate():
     """Relate recent posts."""
     from aggrep.jobs.relate import process_similarities

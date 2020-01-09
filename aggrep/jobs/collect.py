@@ -8,10 +8,10 @@ from flask import current_app
 
 from aggrep import db
 from aggrep.jobs.base import Job
-from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, Status
+from aggrep.models import Feed, Post, PostAction, SimilarityProcessQueue, Source, Status
 from aggrep.utils import now
 
-MIN_UPDATE_FREQ = 2  # 2**2 minutes (4)
+MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
 MAX_UPDATE_FREQ = 7  # 2**7 minutes (128)
 
 
@@ -147,7 +147,7 @@ class Collector(Job):
                     published_datetime=post_datetime,
                 )
                 pa = PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-                e = EntityProcessQueue(post_id=p.id)
+                e = SimilarityProcessQueue(post_id=p.id)
                 db.session.add(p)
                 db.session.add(pa)
                 db.session.add(e)

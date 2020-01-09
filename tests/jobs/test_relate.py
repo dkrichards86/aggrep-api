@@ -10,9 +10,9 @@ from aggrep.jobs.relate import Relater
 class TestRelate:
     """Relater module tests."""
 
-    def test_get_entity_cache(self, category):
+    def test_set_post_cache(self, category):
         """Test fetching the entity cache."""
         relater = Relater()
 
-        relater.set_entity_cache(category)
-        assert type(relater.entity_cache) == defaultdict
+        relater.set_post_cache(category)
+        assert type(relater.recent_posts) == dict

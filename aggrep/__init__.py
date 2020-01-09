@@ -39,7 +39,6 @@ def register_commands(app):
         lint,
         seed,
         collect,
-        process,
         relate,
         updatestats,
         add_feeds,
@@ -52,7 +51,6 @@ def register_commands(app):
     app.cli.add_command(add_feeds)
     app.cli.add_command(seed)
     app.cli.add_command(collect)
-    app.cli.add_command(process)
     app.cli.add_command(relate)
     app.cli.add_command(updatestats)
 
