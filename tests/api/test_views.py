@@ -722,7 +722,9 @@ class TestManageCategories:
                 included_category_ids.append(instance.id)
             instance.save()
 
-        user.excluded_categories = Category.query.filter(Category.id.in_(excluded_category_ids)).all()
+        user.excluded_categories = Category.query.filter(
+            Category.id.in_(excluded_category_ids)
+        ).all()
         user.save()
 
         with app.app_context():
@@ -732,8 +734,8 @@ class TestManageCategories:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data['included_categories'] == included_category_ids
-        assert json_data['excluded_categories'] == excluded_category_ids
+        assert json_data["included_categories"] == included_category_ids
+        assert json_data["excluded_categories"] == excluded_category_ids
 
     def test_endpoint_post(self, app, client, user):
         """Test a successful request."""
@@ -751,12 +753,14 @@ class TestManageCategories:
             token = "Bearer {}".format(create_access_token(user.email))
 
         payload = dict(excluded_categories=excluded_category_ids)
-        rv = client.post("/v1/manage/categories", json=payload, headers={"Authorization": token})
+        rv = client.post(
+            "/v1/manage/categories", json=payload, headers={"Authorization": token}
+        )
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data['included_categories'] == included_category_ids
-        assert json_data['excluded_categories'] == excluded_category_ids
+        assert json_data["included_categories"] == included_category_ids
+        assert json_data["excluded_categories"] == excluded_category_ids
 
     def test_no_auth(self, app, client, user):
         """Test a request with no auth token."""
@@ -782,7 +786,9 @@ class TestManageSources:
                 included_source_ids.append(instance.id)
             instance.save()
 
-        user.excluded_sources = Source.query.filter(Source.id.in_(excluded_source_ids)).all()
+        user.excluded_sources = Source.query.filter(
+            Source.id.in_(excluded_source_ids)
+        ).all()
         user.save()
 
         with app.app_context():
@@ -792,8 +798,8 @@ class TestManageSources:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data['included_sources'] == included_source_ids
-        assert json_data['excluded_sources'] == excluded_source_ids
+        assert json_data["included_sources"] == included_source_ids
+        assert json_data["excluded_sources"] == excluded_source_ids
 
     def test_endpoint_post(self, app, client, user):
         """Test a successful request."""
@@ -811,12 +817,14 @@ class TestManageSources:
             token = "Bearer {}".format(create_access_token(user.email))
 
         payload = dict(excluded_sources=excluded_source_ids)
-        rv = client.post("/v1/manage/sources", json=payload, headers={"Authorization": token})
+        rv = client.post(
+            "/v1/manage/sources", json=payload, headers={"Authorization": token}
+        )
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data['included_sources'] == included_source_ids
-        assert json_data['excluded_sources'] == excluded_source_ids
+        assert json_data["included_sources"] == included_source_ids
+        assert json_data["excluded_sources"] == excluded_source_ids
 
     def test_no_auth(self, app, client, user):
         """Test a request with no auth token."""

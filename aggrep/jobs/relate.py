@@ -141,6 +141,7 @@ class Relater(Job):
         if new_similarities > 0:
             current_app.logger.info("Added {} similarities.".format(new_similarities))
 
+
 def process_similarities():
     """Process enqueued similarities."""
     relater = Relater()
