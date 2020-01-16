@@ -1,6 +1,4 @@
 """Post relater unit tests."""
-from collections import defaultdict
-
 import pytest
 
 from aggrep.jobs.relate import Relater

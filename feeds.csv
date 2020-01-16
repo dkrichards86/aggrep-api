@@ -63,7 +63,6 @@ http://www.cnbc.com/id/10000108/device/rss/rss.html,Science,CNBC
 http://www.cnbc.com/id/10000110/device/rss/rss.html,Entertainment,CNBC
 http://feeds.abcnews.com/abcnews/internationalheadlines,News,ABC News
 http://feeds.abcnews.com/abcnews/usheadlines,News,ABC News
-http://feeds.abcnews.com/abcnews/politicsheadlines,News,ABC News
 http://feeds.abcnews.com/abcnews/moneyheadlines,Business,ABC News
 http://feeds.abcnews.com/abcnews/technologyheadlines,Technology,ABC News
 http://feeds.abcnews.com/abcnews/healthheadlines,Health,ABC News
@@ -89,7 +88,6 @@ https://www.huffingtonpost.com/section/world-news/feed,News,Huffington Post
 https://www.huffingtonpost.com/section/business/feed,Business,Huffington Post
 https://www.huffingtonpost.com/section/health/feed,Health,Huffington Post
 https://www.economist.com/international/rss.xml,News,The Economist
-https://www.economist.com/americas/rss.xml,News,The Economist
 https://www.economist.com/united-states/rss.xml,News,The Economist
 https://www.economist.com/europe/rss.xml,News,The Economist
 https://www.economist.com/business/rss.xml,Business,The Economist
@@ -134,7 +132,6 @@ http://www.espn.com/espn/rss/nba/news,Sports,ESPN
 http://www.espn.com/espn/rss/mlb/news,Sports,ESPN
 http://www.espn.com/espn/rss/nhl/news,Sports,ESPN
 http://www.espn.com/espn/rss/rpm/news,Sports,ESPN
-http://www.espnfc.com/rss,Sports,ESPN
 http://www.espn.com/espn/rss/ncb/news,Sports,ESPN
 http://www.espn.com/espn/rss/ncf/news,Sports,ESPN
 http://www.espn.com/espn/rss/news,Sports,ESPN
@@ -155,7 +152,6 @@ https://www.wired.com/feed/category/business/latest/rss,Business,Wired
 https://www.wired.com/feed/category/culture/latest/rss,Entertainment,Wired
 https://www.wired.com/feed/category/science/latest/rss,Science,Wired
 http://feeds.arstechnica.com/arstechnica/index,Technology,Ars Technica
-https://www.buzzfeed.com/usnews.xml,News,Buzzfeed
 https://www.buzzfeed.com/tvandmovies.xml,Entertainment,Buzzfeed
 https://www.buzzfeed.com/health.xml,Health,Buzzfeed
 https://www.buzzfeed.com/tech.xml,Technology,Buzzfeed
@@ -183,9 +179,6 @@ https://www.theatlantic.com/feed/channel/politics/,News,The Atlantic
 https://www.theatlantic.com/feed/channel/technology/,Technology,The Atlantic
 https://www.theatlantic.com/feed/channel/entertainment/,Entertainment,The Atlantic
 https://www.theatlantic.com/feed/channel/science/,Science,The Atlantic
-https://www.theatlantic.com/feed/channel/business/,Business,The Atlantic
-http://www.vh1.com/news/rss,Entertainment,VH1
-http://en.espnf1.com/rss/motorsport/story/feeds/0.xml?type=2,Sports,ESPN
 https://markets.businessinsider.com/rss/news,Business,Business Insider
 https://www.newrepublic.com/rss.xml,News,New Republic
 http://feeds.feedburner.com/BreakingScienceNews?format=xml,Science,Sci News
@@ -200,17 +193,9 @@ https://www.telegraph.co.uk/money/rss.xml,Business,Telegraph
 https://www.telegraph.co.uk/technology/rss.xml,Technology,Telegraph
 https://www.telegraph.co.uk/science/rss.xml,Science,Telegraph
 https://www.telegraph.co.uk/sport/rss.xml,Sports,Telegraph
-http://www.nydailynews.com/cmlink/NYDN.Sports.rss,Sports,New York Daily News
 http://www.nydailynews.com/cmlink/NYDN.News.National.rss,News,New York Daily News
 http://www.nydailynews.com/cmlink/NYDN.News.World.rss,News,New York Daily News
-http://www.nydailynews.com/cmlink/NYDN.News.Politics.rss,News,New York Daily News
-http://www.nydailynews.com/cmlink/NYDN.Entertainment.rss,Entertainment,New York Daily News
 http://www.nydailynews.com/cmlink/NYDN.Life_Style.Health.rss,Health,New York Daily News
-http://nymag.com/rss/Business_and_Money.xml,Business,NYMag
-http://nymag.com/rss/People.xml,Entertainment,NYMag
-http://nymag.com/rss/Politics.xml,News,NYMag
-http://nymag.com/rss/Sports.xml,Sports,NYMag
-http://nymag.com/rss/Tech.xml,Technology,NYMag
 http://feeds.mashable.com/Mashable,Entertainment,Mashable
 https://www.polygon.com/rss/index.xml,Entertainment,Polygon
 https://www.aljazeera.com/xml/rss/all.xml,News,Al Jazeera
@@ -247,10 +232,7 @@ http://feeds.nbcnews.com/nbcnews/public/news,News,NBC News
 https://www.politifact.com/feeds/articles/truth-o-meter/,News,Politifact
 http://www.observer.com/feed,News,Observer
 https://www.usnews.com/rss/news,News,US News
-https://www.usnews.com/rss/health,Health,US News
 https://www.usnews.com/rss/money,Business,US News
-https://thinkprogress.org/feed,News,Think Progress
 http://feeds.feedburner.com/variety/headlines,Entertainment,Variety
-http://pandodaily.com/feed/,Technology,Pando Daily
 https://profootballtalk.nbcsports.com/atom.xml,Sports,Pro Football Talk
 https://www.cbssports.com/rss/headlines/,News,CBS Sports

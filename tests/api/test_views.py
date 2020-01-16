@@ -734,8 +734,10 @@ class TestManageCategories:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data["included_categories"] == included_category_ids
-        assert json_data["excluded_categories"] == excluded_category_ids
+        assert len(json_data["included_categories"]) == len(included_category_ids)
+        assert sorted(json_data["included_categories"]) == sorted(included_category_ids)
+        assert len(json_data["excluded_categories"]) == len(excluded_category_ids)
+        assert sorted(json_data["excluded_categories"]) == sorted(excluded_category_ids)
 
     def test_endpoint_post(self, app, client, user):
         """Test a successful request."""
@@ -759,8 +761,10 @@ class TestManageCategories:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data["included_categories"] == included_category_ids
-        assert json_data["excluded_categories"] == excluded_category_ids
+        assert len(json_data["included_categories"]) == len(included_category_ids)
+        assert sorted(json_data["included_categories"]) == sorted(included_category_ids)
+        assert len(json_data["excluded_categories"]) == len(excluded_category_ids)
+        assert sorted(json_data["excluded_categories"]) == sorted(excluded_category_ids)
 
     def test_no_auth(self, app, client, user):
         """Test a request with no auth token."""
@@ -798,8 +802,10 @@ class TestManageSources:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data["included_sources"] == included_source_ids
-        assert json_data["excluded_sources"] == excluded_source_ids
+        assert len(json_data["included_sources"]) == len(included_source_ids)
+        assert sorted(json_data["included_sources"]) == sorted(included_source_ids)
+        assert len(json_data["excluded_sources"]) == len(excluded_source_ids)
+        assert sorted(json_data["excluded_sources"]) == sorted(excluded_source_ids)
 
     def test_endpoint_post(self, app, client, user):
         """Test a successful request."""
@@ -823,8 +829,10 @@ class TestManageSources:
 
         assert rv.status_code == 200
         json_data = rv.get_json()
-        assert json_data["included_sources"] == included_source_ids
-        assert json_data["excluded_sources"] == excluded_source_ids
+        assert len(json_data["included_sources"]) == len(included_source_ids)
+        assert sorted(json_data["included_sources"]) == sorted(included_source_ids)
+        assert len(json_data["excluded_sources"]) == len(excluded_source_ids)
+        assert sorted(json_data["excluded_sources"]) == sorted(excluded_source_ids)
 
     def test_no_auth(self, app, client, user):
         """Test a request with no auth token."""

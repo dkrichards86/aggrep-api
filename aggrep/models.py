@@ -146,14 +146,9 @@ class Post(BaseModel, PaginatedAPIMixin):
 
     feed = db.relationship("Feed", uselist=False, backref="posts")
 
-    entities = db.relationship("Entity", backref="post")
-    enqueued_entities = db.relationship("EntityProcessQueue", backref="post")
-
     similar_posts = db.relationship(
         "Post",
         secondary="similarities",
-        # primaryjoin="Post.id==Similarity.related_id",
-        # secondaryjoin="Similarity.source_id==Post.id",
         primaryjoin="Post.id==Similarity.source_id",
         secondaryjoin="Post.id==Similarity.related_id",
         lazy="dynamic",
@@ -220,25 +215,6 @@ class PostAction(BaseModel):
     ctr = db.Column(db.Numeric(4, 3), default=0)
 
     post = db.relationship("Post", uselist=False, backref="post_actions")
-
-
-class EntityProcessQueue(BaseModel):
-    """Entity queue model."""
-
-    __tablename__ = "entity_queue"
-    post_id = db.Column(
-        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
-    )
-
-
-class Entity(BaseModel):
-    """Entity model."""
-
-    __tablename__ = "entities"
-    entity = db.Column(db.String(40), nullable=False)
-    post_id = db.Column(
-        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
-    )
 
 
 class SimilarityProcessQueue(BaseModel):
