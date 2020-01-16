@@ -152,8 +152,6 @@ class Post(BaseModel, PaginatedAPIMixin):
     similar_posts = db.relationship(
         "Post",
         secondary="similarities",
-        # primaryjoin="Post.id==Similarity.related_id",
-        # secondaryjoin="Similarity.source_id==Post.id",
         primaryjoin="Post.id==Similarity.source_id",
         secondaryjoin="Post.id==Similarity.related_id",
         lazy="dynamic",
