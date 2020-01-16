@@ -6,7 +6,6 @@ from sqlalchemy.exc import IntegrityError
 
 from aggrep.models import (
     Category,
-    EntityProcessQueue,
     Feed,
     Post,
     SimilarityProcessQueue,
@@ -222,16 +221,6 @@ class TestPost:
         """Test post UIDs."""
 
         assert Post.from_uid(post.uid) == post
-
-
-@pytest.mark.usefixtures("db")
-class TestEntityProcessQueue:
-    """Entity Queue Tests."""
-
-    def test_model_create(self, post):
-        """Ensure model is created with relation."""
-        instance = EntityProcessQueue.create(post=post)
-        assert instance.post_id == post.id
 
 
 @pytest.mark.usefixtures("db")
