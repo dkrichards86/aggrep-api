@@ -154,8 +154,6 @@ class Post(BaseModel, PaginatedAPIMixin):
         lazy="dynamic",
     )
 
-    enqueued_similartities = db.relationship("SimilarityProcessQueue", backref="post")
-
     @staticmethod
     def search(query, search_terms):
         """Search a post collection for search terms."""
@@ -192,7 +190,6 @@ class Post(BaseModel, PaginatedAPIMixin):
             title=self.title,
             link=url_for("app.follow_redirect", uid=self.uid, _external=True),
             post_url=self.link,
-            similar_count=self.similar_posts.count(),
             feed=self.feed.to_dict(),
             published_datetime=self.published_datetime,
         )
