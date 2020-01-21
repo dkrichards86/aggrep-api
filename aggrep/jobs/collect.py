@@ -1,4 +1,5 @@
 """Post collection job."""
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from time import mktime
 
@@ -165,34 +166,33 @@ class Collector(Job):
 
     def process_feeds(self):
         """Process feeds ready for review."""
-        for feed in self.due_feeds:
-            if not self.lock.is_locked() or self.lock.is_expired():
-                break
+        with ThreadPoolExecutor() as executor:
+            futures_to_feed = {executor.submit(feedparser.parse, feed.url): feed for feed in self.due_feeds}
 
-            link_urls = self.get_source_posts(feed.source)
+            for future in as_completed(futures_to_feed):
+                feed = futures_to_feed[future]
+                feed_data = future.result()
 
-            # Get the actual feed data
-            feed_data = feedparser.parse(feed.url)
+                link_urls = self.get_source_posts(feed.source)
+                new_post_count = self.process_posts(feed_data.entries, feed, link_urls)
 
-            new_post_count = self.process_posts(feed_data.entries, feed, link_urls)
+                update_frequency = feed.status.update_frequency
+                if new_post_count > 0:
+                    update_frequency = feed.status.update_frequency - 1
+                elif new_post_count == 0:
+                    update_frequency = feed.status.update_frequency + 1
 
-            update_frequency = feed.status.update_frequency
-            if new_post_count > 0:
-                update_frequency = feed.status.update_frequency - 1
-            elif new_post_count == 0:
-                update_frequency = feed.status.update_frequency + 1
+                if update_frequency < MIN_UPDATE_FREQ:
+                    update_frequency = MIN_UPDATE_FREQ
+                elif update_frequency > MAX_UPDATE_FREQ:
+                    update_frequency = MAX_UPDATE_FREQ
 
-            if update_frequency < MIN_UPDATE_FREQ:
-                update_frequency = MIN_UPDATE_FREQ
-            elif update_frequency > MAX_UPDATE_FREQ:
-                update_frequency = MAX_UPDATE_FREQ
-
-            # Update the record in the status table
-            feed.status.update(update_frequency=update_frequency, update_datetime=now())
-            if new_post_count > 0:
-                current_app.logger.info(
-                    "Added {} new posts for feed {}.".format(new_post_count, feed)
-                )
+                # Update the record in the status table
+                feed.status.update(update_frequency=update_frequency, update_datetime=now())
+                if new_post_count > 0:
+                    current_app.logger.info(
+                        "Added {} new posts for feed {}.".format(new_post_count, feed)
+                    )
 
     def run(self):
         """Run the processor."""
