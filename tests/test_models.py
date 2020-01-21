@@ -229,7 +229,7 @@ class TestSimilarityProcessQueue:
 
     def test_model_create(self, post):
         """Ensure model is created with relation."""
-        instance = SimilarityProcessQueue.create(post=post)
+        instance = SimilarityProcessQueue.create(post_id=post.id)
         assert instance.post_id == post.id
 
 
