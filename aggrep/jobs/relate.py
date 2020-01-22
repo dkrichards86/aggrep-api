@@ -42,7 +42,7 @@ class Relater(Job):
 
     def set_post_cache(self, category):
         """Get recent posts in a given category."""
-        delta = now() - timedelta(days=3)
+        delta = now() - timedelta(days=1)
 
         recent_posts = (
             Post.query.filter(Post.published_datetime >= delta)
