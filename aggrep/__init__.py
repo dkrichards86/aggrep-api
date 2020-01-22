@@ -37,19 +37,21 @@ def register_commands(app):
     from aggrep.commands import (
         test,
         lint,
-        seed,
         collect,
         relate,
         updatestats,
-        add_feeds,
+        seed_feeds,
         seed_categories,
+        seed_locks,
+        unlock_job,
     )
 
     app.cli.add_command(test)
     app.cli.add_command(lint)
     app.cli.add_command(seed_categories)
-    app.cli.add_command(add_feeds)
-    app.cli.add_command(seed)
+    app.cli.add_command(seed_feeds)
+    app.cli.add_command(seed_locks)
+    app.cli.add_command(unlock_job)
     app.cli.add_command(collect)
     app.cli.add_command(relate)
     app.cli.add_command(updatestats)
