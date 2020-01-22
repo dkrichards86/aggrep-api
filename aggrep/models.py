@@ -222,6 +222,8 @@ class SimilarityProcessQueue(BaseModel):
         db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
     )
 
+    post = db.relationship("Post")
+
 
 class Similarity(BaseModel):
     """Similarity model."""

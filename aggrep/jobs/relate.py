@@ -15,7 +15,7 @@ ws = re.compile(r"\s+")
 nlp = spacy.load("en_core_web_md")
 
 BATCH_SIZE = 50
-THRESHOLD = 0.85
+THRESHOLD = 0.825
 
 
 def clean(text):
@@ -42,7 +42,7 @@ class Relater(Job):
 
     def set_post_cache(self, category):
         """Get recent posts in a given category."""
-        delta = now() - timedelta(days=1)
+        delta = now() - timedelta(days=3)
 
         recent_posts = (
             Post.query.filter(Post.published_datetime >= delta)
