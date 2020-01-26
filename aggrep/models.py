@@ -3,7 +3,7 @@ import short_url
 from flask import current_app, url_for
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_searchable import make_searchable, SearchQueryMixin
+from sqlalchemy_searchable import SearchQueryMixin, make_searchable
 from sqlalchemy_utils.types import TSVectorType
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -133,6 +133,8 @@ class Feed(BaseModel):
 
 
 class PostQuery(BaseQuery, SearchQueryMixin):
+    """Searchable Post query class."""
+
     pass
 
 
@@ -151,14 +153,7 @@ class Post(BaseModel, PaginatedAPIMixin):
     search_vector = db.Column(TSVectorType("title", "desc"))
 
     feed = db.relationship("Feed", uselist=False, backref="posts")
-
-    similar_posts = db.relationship(
-        "Post",
-        secondary="similarities",
-        primaryjoin="Post.id==Similarity.source_id",
-        secondaryjoin="Post.id==Similarity.related_id",
-        lazy="dynamic",
-    )
+    entities = db.relationship("Entity", backref="post")
 
     @property
     def uid(self):
@@ -211,6 +206,27 @@ class PostAction(BaseModel):
     ctr = db.Column(db.Numeric(4, 3), default=0)
 
     post = db.relationship("Post", uselist=False, backref="post_actions")
+
+
+class EntityProcessQueue(BaseModel):
+    """Entity queue model."""
+
+    __tablename__ = "entity_queue"
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
+    )
+
+    post = db.relationship("Post")
+
+
+class Entity(BaseModel):
+    """Entity model."""
+
+    __tablename__ = "entities"
+    entity = db.Column(db.String(40), nullable=False)
+    post_id = db.Column(
+        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
+    )
 
 
 class SimilarityProcessQueue(BaseModel):

@@ -4,16 +4,7 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import (
-    Bookmark,
-    Category,
-    Feed,
-    Post,
-    PostAction,
-    PostView,
-    Similarity,
-    Source,
-)
+from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -426,24 +417,8 @@ class TestSimilar:
             posts.append(instance)
             instance.save()
 
-        Similarity.create(source_id=posts[0].id, related_id=posts[2].id)
-        Similarity.create(source_id=posts[0].id, related_id=posts[3].id)
-        Similarity.create(source_id=posts[0].id, related_id=posts[4].id)
-        Similarity.create(source_id=posts[1].id, related_id=posts[0].id)
-        Similarity.create(source_id=posts[1].id, related_id=posts[2].id)
-        Similarity.create(source_id=posts[2].id, related_id=posts[1].id)
-
         rv = client.get("/v1/similar/{}".format(posts[0].uid))
-        json_data = rv.get_json()
-        assert json_data["total_items"] == 4
-
-        rv = client.get("/v1/similar/{}".format(posts[1].uid))
-        json_data = rv.get_json()
-        assert json_data["total_items"] == 3
-
-        rv = client.get("/v1/similar/{}".format(posts[2].uid))
-        json_data = rv.get_json()
-        assert json_data["total_items"] == 2
+        assert rv.status_code == 200
 
 
 @pytest.mark.usefixtures("db")
