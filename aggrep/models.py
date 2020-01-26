@@ -1,8 +1,9 @@
 """Database models."""
 import short_url
 from flask import current_app, url_for
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_searchable import make_searchable
+from sqlalchemy_searchable import make_searchable, SearchQueryMixin
 from sqlalchemy_utils.types import TSVectorType
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -131,10 +132,15 @@ class Feed(BaseModel):
         )
 
 
+class PostQuery(BaseQuery, SearchQueryMixin):
+    pass
+
+
 class Post(BaseModel, PaginatedAPIMixin):
     """Post model."""
 
     __tablename__ = "posts"
+    query_class = PostQuery
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"))
     title = db.Column(db.Unicode(255), nullable=False)
     desc = db.Column(db.UnicodeText)
@@ -153,13 +159,6 @@ class Post(BaseModel, PaginatedAPIMixin):
         secondaryjoin="Post.id==Similarity.related_id",
         lazy="dynamic",
     )
-
-    @staticmethod
-    def search(query, search_terms):
-        """Search a post collection for search terms."""
-        return query.from_self().filter(
-            Post.search_vector.op("@@")(db.func.to_tsquery(search_terms))
-        )
 
     @property
     def uid(self):

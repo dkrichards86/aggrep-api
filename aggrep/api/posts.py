@@ -67,4 +67,4 @@ def get_posts_by_search(query):
     """Get posts similar to a given post."""
     delta = now() - SEARCH_DELTA
     searchable_posts = Post.query.filter(Post.published_datetime >= delta)
-    return Post.search(searchable_posts, query)
+    return searchable_posts.search(query, sort=True)
