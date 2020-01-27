@@ -4,6 +4,7 @@ import re
 
 import spacy
 from flask import current_app
+from sqlalchemy import desc
 
 from aggrep import db
 from aggrep.jobs.base import Job
@@ -15,6 +16,7 @@ nlp = spacy.load("en_core_web_md")
 
 
 BATCH_SIZE = 250
+PER_RUN_LIMIT = 5000
 EXCLUDES = [
     "LANGUAGE",
     "DATE",
@@ -61,7 +63,11 @@ class EntityExtractor(Job):
 
     def get_enqueued_posts(self):
         """Get enqueued posts."""
-        return [eq.post for eq in EntityProcessQueue.query.all()]
+        posts = EntityProcessQueue.query.order_by(
+            desc(EntityProcessQueue.id)
+        ).limit(PER_RUN_LIMIT).all()
+
+        return [eq.post for eq in posts]
 
     def process_batch(self, batch):
         """Process a batch of posts."""
