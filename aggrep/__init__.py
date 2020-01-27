@@ -38,6 +38,7 @@ def register_commands(app):
         test,
         lint,
         collect,
+        process,
         relate,
         updatestats,
         seed_feeds,
@@ -53,6 +54,7 @@ def register_commands(app):
     app.cli.add_command(seed_locks)
     app.cli.add_command(unlock_job)
     app.cli.add_command(collect)
+    app.cli.add_command(process)
     app.cli.add_command(relate)
     app.cli.add_command(updatestats)
 

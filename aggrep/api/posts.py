@@ -2,7 +2,13 @@
 
 from sqlalchemy import desc
 
-from aggrep.constants import POPULAR, POST_DELTA, POST_LIMIT, SEARCH_DELTA
+from aggrep.constants import (
+    POPULAR,
+    POST_DELTA,
+    POST_LIMIT,
+    SEARCH_DELTA,
+    SIMILARITY_DELTA,
+)
 from aggrep.models import Category, Feed, Post, Source
 from aggrep.utils import now
 
@@ -59,12 +65,21 @@ def get_posts_by_category(category):
 def get_similar_posts(uid):
     """Get posts similar to a given post."""
     _post = Post.from_uid(uid)
+    entities = [e.entity for e in _post.entities]
     source_post = Post.query.filter(Post.id == _post.id)
-    return source_post.union(_post.similar_posts)
+
+    if len(entities) > 0:
+        query = " ".join(['"{}"'.format(term) for term in entities])
+        delta = now() - SIMILARITY_DELTA
+        related = Post.query.filter(
+            Post.id != _post.id, Post.published_datetime >= delta
+        ).search(query, sort=True)
+        return source_post.union(related)
+    return source_post
 
 
 def get_posts_by_search(query):
     """Get posts similar to a given post."""
     delta = now() - SEARCH_DELTA
     searchable_posts = Post.query.filter(Post.published_datetime >= delta)
-    return Post.search(searchable_posts, query)
+    return searchable_posts.search(query, sort=True)

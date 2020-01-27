@@ -11,13 +11,12 @@ from aggrep.api.posts import (
     get_posts_by_category,
     get_posts_by_search,
     get_posts_by_source,
-    get_similar_posts,
     limit_posts,
     sort_posts,
 )
 from aggrep.constants import LATEST, POPULAR
-from aggrep.models import Category, Feed, Post, Similarity, Source
-from aggrep.utils import build_search_query, now
+from aggrep.models import Category, Feed, Post, Source
+from aggrep.utils import now
 from tests.factories import PostFactory
 
 
@@ -85,28 +84,9 @@ class TestPosts:
         for i, post in enumerate(posts):
             Post.create(feed=feed, title=post, desc=post, link="link{}.com".format(i))
 
-        assert get_posts_by_search(build_search_query("nymph")).count() == 2
-        assert get_posts_by_search(build_search_query("nymph dwarf")).count() == 1
-        assert get_posts_by_search(build_search_query("quartz")).count() == 2
-
-    def test_get_similar_posts(self, app):
-        """Test getting similar posts."""
-        posts = []
-        for instance in PostFactory.create_batch(5):
-            posts.append(instance)
-            instance.save()
-
-        Similarity.create(source_id=posts[0].id, related_id=posts[2].id)
-        Similarity.create(source_id=posts[0].id, related_id=posts[3].id)
-        Similarity.create(source_id=posts[0].id, related_id=posts[4].id)
-        Similarity.create(source_id=posts[1].id, related_id=posts[0].id)
-        Similarity.create(source_id=posts[1].id, related_id=posts[2].id)
-        Similarity.create(source_id=posts[2].id, related_id=posts[1].id)
-
-        # Each post returns itself and all of its similar posts.
-        assert get_similar_posts(posts[0].uid).count() == 4
-        assert get_similar_posts(posts[1].uid).count() == 3
-        assert get_similar_posts(posts[2].uid).count() == 2
+        assert get_posts_by_search("nymph").count() == 2
+        assert get_posts_by_search("nymph dwarf").count() == 1
+        assert get_posts_by_search("quartz").count() == 2
 
     def test_filter_user_categories(self, app, user):
         """Test getting posts filtered by user prefs."""

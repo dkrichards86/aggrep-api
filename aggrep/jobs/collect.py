@@ -9,7 +9,7 @@ from flask import current_app
 
 from aggrep import db
 from aggrep.jobs.base import Job
-from aggrep.models import Feed, Post, PostAction, SimilarityProcessQueue, Source, Status
+from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, Status
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
@@ -148,10 +148,10 @@ class Collector(Job):
                     published_datetime=post_datetime,
                 )
                 pa = PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-                e = SimilarityProcessQueue(post_id=p.id)
+                q = EntityProcessQueue(post_id=p.id)
                 db.session.add(p)
                 db.session.add(pa)
-                db.session.add(e)
+                db.session.add(q)
 
                 new_post_count += 1
 
@@ -167,7 +167,10 @@ class Collector(Job):
     def process_feeds(self):
         """Process feeds ready for review."""
         with ThreadPoolExecutor() as executor:
-            futures_to_feed = {executor.submit(feedparser.parse, feed.url): feed for feed in self.due_feeds}
+            futures_to_feed = {
+                executor.submit(feedparser.parse, feed.url): feed
+                for feed in self.due_feeds
+            }
 
             for future in as_completed(futures_to_feed):
                 feed = futures_to_feed[future]
@@ -188,7 +191,9 @@ class Collector(Job):
                     update_frequency = MAX_UPDATE_FREQ
 
                 # Update the record in the status table
-                feed.status.update(update_frequency=update_frequency, update_datetime=now())
+                feed.status.update(
+                    update_frequency=update_frequency, update_datetime=now()
+                )
                 if new_post_count > 0:
                     current_app.logger.info(
                         "Added {} new posts for feed {}.".format(new_post_count, feed)

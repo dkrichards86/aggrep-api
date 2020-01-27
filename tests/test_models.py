@@ -4,15 +4,7 @@ import datetime as dt
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from aggrep.models import (
-    Category,
-    Feed,
-    Post,
-    SimilarityProcessQueue,
-    Source,
-    Status,
-    User,
-)
+from aggrep.models import Category, Feed, Post, Source, Status, User
 from aggrep.utils import decode_token, encode_token
 from tests.factories import PostFactory
 
@@ -221,16 +213,6 @@ class TestPost:
         """Test post UIDs."""
 
         assert Post.from_uid(post.uid) == post
-
-
-@pytest.mark.usefixtures("db")
-class TestSimilarityProcessQueue:
-    """Similarity Queue Tests."""
-
-    def test_model_create(self, post):
-        """Ensure model is created with relation."""
-        instance = SimilarityProcessQueue.create(post_id=post.id)
-        assert instance.post_id == post.id
 
 
 @pytest.mark.usefixtures("db")

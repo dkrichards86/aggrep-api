@@ -43,7 +43,7 @@ from aggrep.api.posts import (
 )
 from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
 from aggrep.models import Bookmark, Category, Post, PostAction, PostView, Source, User
-from aggrep.utils import build_search_query, get_cache_key
+from aggrep.utils import get_cache_key
 
 app = Blueprint("app", __name__, template_folder="templates")
 api = Blueprint("api", __name__, url_prefix="/v1", template_folder="templates")
@@ -268,7 +268,7 @@ def search_posts():
     cached = cache.get(cache_key)
 
     if cached is None:
-        posts = get_posts_by_search(build_search_query(term))
+        posts = get_posts_by_search(term)
 
         title = "Search Results"
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)

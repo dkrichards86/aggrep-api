@@ -19,7 +19,8 @@ env.read_env()
 APP_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(APP_ROOT, os.pardir)
 TEST_PATH = os.path.join(APP_ROOT, "tests")
-JOB_TYPES = ("COLLECT", "RELATE", "ANALYZE")
+JOB_TYPES = ("COLLECT", "RELATE", "ANALYZE", "PROCESS")
+
 
 @click.command()
 @click.option("--show-missing", default=False, is_flag=True, help="Show missing lines")
@@ -174,6 +175,15 @@ def collect(days=1):
     from aggrep.jobs.collect import collect_posts
 
     collect_posts(days=days)
+
+
+@click.command()
+@with_appcontext
+def process():
+    """Process recent posts."""
+    from aggrep.jobs.entities import process_entities
+
+    process_entities()
 
 
 @click.command()
