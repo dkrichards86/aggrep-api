@@ -60,9 +60,11 @@ class PaginatedAPIMixin:
     @staticmethod
     def to_collection_dict(query, page, per_page):
         """Paginate a collection."""
+        from aggrep.api.schemas import posts_schema
+
         resources = query.paginate(page, per_page, False)
         data = {
-            "items": [item.to_dict() for item in resources.items],
+            "items": posts_schema.dump(resources.items),
             "page": page,
             "per_page": per_page,
             "total_pages": resources.pages,
@@ -78,10 +80,6 @@ class Category(BaseModel):
     slug = db.Column(db.String(32), unique=True, nullable=False)
     title = db.Column(db.String(140), unique=True, nullable=False)
 
-    def to_dict(self):
-        """Return as a dict."""
-        return dict(id=self.id, slug=self.slug, title=self.title)
-
     def __repr__(self):
         """String representation."""
         return self.title
@@ -93,10 +91,6 @@ class Source(BaseModel):
     __tablename__ = "sources"
     slug = db.Column(db.String(32), unique=True, nullable=False)
     title = db.Column(db.String(140), nullable=False)
-
-    def to_dict(self):
-        """Return as a dict."""
-        return dict(id=self.id, slug=self.slug, title=self.title)
 
     def __repr__(self):
         """String representation."""
@@ -124,12 +118,6 @@ class Feed(BaseModel):
     source = db.relationship("Source", uselist=False, backref="feeds")
     category = db.relationship("Category", uselist=False, backref="feeds")
     status = db.relationship("Status", uselist=False, backref="feed")
-
-    def to_dict(self):
-        """Return as a dict."""
-        return dict(
-            source=self.source.to_dict(), category=self.category.to_dict(), url=self.url
-        )
 
 
 class PostQuery(BaseQuery, SearchQueryMixin):
@@ -175,19 +163,6 @@ class Post(BaseModel, PaginatedAPIMixin):
         """Post click through rate (class level)."""
 
         return db.select([PostAction.ctr]).where(PostAction.post_id == self.id)
-
-    def to_dict(self):
-        """Return as a dict."""
-        payload = dict(
-            id=self.id,
-            uid=self.uid,
-            title=self.title,
-            link=url_for("app.follow_redirect", uid=self.uid, _external=True),
-            post_url=self.link,
-            feed=self.feed.to_dict(),
-            published_datetime=self.published_datetime,
-        )
-        return payload
 
     def __repr__(self):
         """String representation."""
@@ -401,10 +376,6 @@ class User(BaseModel):
             return None
 
         return User.query.get(id)
-
-    def to_dict(self):
-        """Return as a dict."""
-        return dict(email=self.email, confirmed=self.confirmed)
 
     def __repr__(self):
         """String representation."""

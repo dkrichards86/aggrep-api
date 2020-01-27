@@ -87,14 +87,6 @@ class TestCategory:
         instance = Category.create(slug="slug", title="title")
         assert str(instance) == "title"
 
-    def test_to_dict(self):
-        """Write a category to a dict."""
-        instance = Category.create(slug="slug", title="title")
-
-        as_dict = instance.to_dict()
-        assert as_dict["slug"] == "slug"
-        assert as_dict["title"] == "title"
-
 
 @pytest.mark.usefixtures("db")
 class TestSource:
@@ -116,13 +108,6 @@ class TestSource:
         instance = Source.create(slug="slug", title="title")
         assert str(instance) == "title"
 
-    def test_to_dict(self):
-        """Write a source to a dict."""
-        instance = Source.create(slug="slug", title="title")
-        as_dict = instance.to_dict()
-        assert as_dict["slug"] == "slug"
-        assert as_dict["title"] == "title"
-
 
 @pytest.mark.usefixtures("db")
 class TestFeed:
@@ -134,16 +119,6 @@ class TestFeed:
         assert instance.source_id == source.id
         assert instance.category_id == category.id
         assert instance.url == "foobar.com"
-
-    def test_to_dict(self):
-        """Write a feed to a dict."""
-        cat = Category.create(slug="cat", title="cat title")
-        src = Source.create(slug="src", title="src title")
-        instance = Feed.create(source=src, category=cat, url="foobar.com")
-
-        expected = dict(source=src.to_dict(), category=cat.to_dict(), url="foobar.com")
-
-        assert instance.to_dict() == expected
 
 
 @pytest.mark.usefixtures("db")
@@ -286,10 +261,6 @@ class TestUsers:
             decoded_user = User.verify_email_confirm_token(token)
 
         assert decoded_user is None
-
-    def test_to_dict(self, user):
-        """Test user as a dict."""
-        assert user.to_dict() == dict(email=user.email, confirmed=user.confirmed)
 
     def test_repr(self, user):
         """Test string representation."""

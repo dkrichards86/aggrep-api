@@ -41,6 +41,7 @@ from aggrep.api.posts import (
     limit_posts,
     sort_posts,
 )
+from aggrep.api.schemas import categories_schema, sources_schema, user_schema
 from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
 from aggrep.models import Bookmark, Category, Post, PostAction, PostView, Source, User
 from aggrep.utils import get_cache_key
@@ -402,14 +403,14 @@ def viewed_posts():
 @api.route("/sources")
 def sources():
     """Get all sources."""
-    sources = [s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()]
+    sources = sources_schema.dump(Source.query.order_by(Source.title.asc()).all())
     return jsonify(sources=sources), 200
 
 
 @api.route("/categories")
 def categories():
     """Get all categories."""
-    categories = [c.to_dict() for c in Category.query.order_by(Category.id.asc()).all()]
+    categories = categories_schema.dump(Category.query.order_by(Category.id.asc()).all())
     return jsonify(categories=categories), 200
 
 
@@ -480,7 +481,7 @@ def auth_token_confirm():
     current_user = User.get_user_from_identity(get_jwt_identity())
     payload = dict(
         msg="Token verification successful!",
-        user=current_user.to_dict(),
+        user=user_schema.dump(current_user),
         access_token=create_access_token(identity=current_user.email),
     )
     return jsonify(payload), 200
@@ -503,7 +504,7 @@ def auth_login():
 
         payload = dict(
             msg="Login Successful",
-            user=user.to_dict(),
+            user=user_schema.dump(user),
             access_token=create_access_token(identity=user.email),
         )
         return jsonify(payload), 200
@@ -544,7 +545,7 @@ def auth_register():
         send_email(email_data)
         payload = dict(
             msg="Registration Successful!",
-            user=user.to_dict(),
+            user=user_schema.dump(user),
             access_token=create_access_token(identity=form.email.data),
         )
         return jsonify(payload), 200
@@ -585,7 +586,7 @@ def auth_email_update():
         payload = dict(
             msg="Your email has been updated. Please check your email for a confirmation link.",
             auth=dict(
-                user=current_user.to_dict(),
+                user=user_schema.dump(current_user),
                 access_token=create_access_token(identity=current_user.email),
             ),
         )

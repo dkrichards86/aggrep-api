@@ -7,6 +7,7 @@ from flask import Flask
 from flask_caching import Cache
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_sendgrid import SendGrid
 from flask_sqlalchemy import SQLAlchemy
@@ -21,6 +22,7 @@ migrate = Migrate(directory="migrations")
 cache = Cache()
 mail = SendGrid()
 jwt = JWTManager()
+ma = Marshmallow()
 
 
 def register_blueprints(app):
@@ -76,6 +78,7 @@ def create_app(config_object=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     mail.init_app(app)
+    ma.init_app(app)
 
     jwt.init_app(app)
     CORS(app)
