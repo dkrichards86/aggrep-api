@@ -16,7 +16,7 @@ nlp = spacy.load("en_core_web_md")
 
 
 BATCH_SIZE = 250
-PER_RUN_LIMIT = 5000
+PER_RUN_LIMIT = 3000
 EXCLUDES = [
     "LANGUAGE",
     "DATE",
@@ -63,9 +63,11 @@ class EntityExtractor(Job):
 
     def get_enqueued_posts(self):
         """Get enqueued posts."""
-        posts = EntityProcessQueue.query.order_by(
-            desc(EntityProcessQueue.id)
-        ).limit(PER_RUN_LIMIT).all()
+        posts = (
+            EntityProcessQueue.query.order_by(desc(EntityProcessQueue.id))
+            .limit(PER_RUN_LIMIT)
+            .all()
+        )
 
         return [eq.post for eq in posts]
 
@@ -74,6 +76,9 @@ class EntityExtractor(Job):
         post_ids = []
         new_entities = 0
         for post in batch:
+            if post is None:
+                continue
+
             post_ids.append(post.id)
 
             if not post.desc:
