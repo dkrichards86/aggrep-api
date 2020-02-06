@@ -1,9 +1,6 @@
 """Post collection job."""
-<<<<<<< HEAD
 import re
 import requests
-=======
->>>>>>> master
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from time import mktime
@@ -14,7 +11,7 @@ from flask import current_app
 
 from aggrep import db
 from aggrep.jobs.base import Job
-from aggrep.models import Feed, Post, PostAction, SimilarityProcessQueue, Source, Status
+from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, Status
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
@@ -235,7 +232,7 @@ class Collector(Job):
             for p in posts:
                 p.save()
                 PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-                SimilarityProcessQueue.create(post_id=p.id)
+                EntityProcessQueue.create(post_id=p.id)
 
             update_frequency = feed.status.update_frequency
             if new_post_count > 0:

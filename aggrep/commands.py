@@ -10,7 +10,7 @@ from environs import Env
 from flask import current_app
 from flask.cli import with_appcontext
 
-from aggrep.models import Category, Feed, Source, Status
+from aggrep.models import Category, Feed, JobLock, JobType, Source, Status
 from aggrep.utils import slugify
 
 env = Env()
@@ -19,6 +19,7 @@ env.read_env()
 APP_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.join(APP_ROOT, os.pardir)
 TEST_PATH = os.path.join(APP_ROOT, "tests")
+JOB_TYPES = ("COLLECT", "RELATE", "ANALYZE", "PROCESS")
 
 
 @click.command()
@@ -97,7 +98,7 @@ def lint(fix_imports, check):
 
 @click.command()
 @with_appcontext
-def add_feeds():
+def seed_feeds():
     """Add new feeds to the database."""
     filepath = os.path.join(PROJECT_ROOT, "feeds.csv")
 
@@ -150,10 +151,20 @@ def seed_categories():
 
 @click.command()
 @with_appcontext
-def seed():
-    """Seed the database with categories and feeds."""
-    seed_categories()
-    add_feeds()
+def seed_locks():
+    """Seed the database with job locks."""
+    for l in JOB_TYPES:
+        JobType.create(job=l)
+
+
+@click.command()
+@click.option("--identifier", type=click.Choice(JOB_TYPES))
+@with_appcontext
+def unlock_job(identifier):
+    """Run the tests."""
+    job_type = JobType.query.filter(JobType.job == identifier).first()
+    job_lock = JobLock.query.filter(JobLock.job == job_type).first()
+    job_lock.delete()
 
 
 @click.command()
@@ -164,6 +175,15 @@ def collect(days=1):
     from aggrep.jobs.collect import collect_posts
 
     collect_posts(days=days)
+
+
+@click.command()
+@with_appcontext
+def process():
+    """Process recent posts."""
+    from aggrep.jobs.entities import process_entities
+
+    process_entities()
 
 
 @click.command()

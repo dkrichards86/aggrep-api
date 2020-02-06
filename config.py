@@ -44,7 +44,7 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
     LOG_LEVEL = "debug"
-    CACHE_TYPE= "null"
+    CACHE_TYPE = "null"
 
 
 class TestingConfig(Config):

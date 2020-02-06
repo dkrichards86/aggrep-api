@@ -15,7 +15,7 @@ ws = re.compile(r"\s+")
 nlp = spacy.load("en_core_web_md")
 
 BATCH_SIZE = 50
-THRESHOLD = 0.85
+THRESHOLD = 0.925
 
 
 def clean(text):
