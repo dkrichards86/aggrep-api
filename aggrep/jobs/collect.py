@@ -15,7 +15,7 @@ from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, St
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
-MAX_UPDATE_FREQ = 7  # 2**7 minutes (128)
+MAX_UPDATE_FREQ = 8  # 2**8 minutes (256)
 
 
 class OpenGraphParser:
@@ -46,7 +46,7 @@ class OpenGraphParser:
     def fetch(self):
         headers = {'User-Agent': 'Aggregate Report/1.0'}
 
-        content = requests.get(self._url, headers=headers, timeout=2)
+        content = requests.get(self._url, headers=headers, timeout=5)
         content.raise_for_status()
         return content.text
 
@@ -160,8 +160,12 @@ def process_posts(feed, link_urls, collection_offset):
 
             if og.description is not None:
                 desc = og.description
+
         except Exception:
             pass
+
+        if len(desc) > 255:
+            desc = desc[:255]
 
         # If this particular post has not been processed
         # previously, process it.
@@ -223,11 +227,13 @@ class Collector(Job):
                 futures_to_feed[executor.submit(process_posts, feed, link_urls, self._collection_offset)] = feed
 
             for future in as_completed(futures_to_feed):
+                current_app.logger.info("Processing feed {}.".format(feed.id))
                 feed = futures_to_feed[future]
                 posts = future.result()
                 feed_posts.append((feed, posts))
 
         for feed, posts in feed_posts:
+            current_app.logger.info("Saving posts from feed {}.".format(feed.id))
             new_post_count = len(posts)
             for p in posts:
                 p.save()
