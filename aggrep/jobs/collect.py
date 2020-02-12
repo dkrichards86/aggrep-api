@@ -1,4 +1,6 @@
 """Post collection job."""
+import re
+import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from time import mktime
@@ -13,7 +15,49 @@ from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, St
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
-MAX_UPDATE_FREQ = 7  # 2**7 minutes (128)
+MAX_UPDATE_FREQ = 8  # 2**8 minutes (256)
+
+
+class OpenGraphParser:
+    def __init__(self, url):
+        self.attrs = dict()
+        self._url = url
+        self.parse()
+
+    def _get(self, attr):
+        return self.attrs.get(attr)
+
+    @property
+    def url(self):
+        return self._get('url')
+
+    @property
+    def title(self):
+        return self._get('title')
+
+    @property
+    def image(self):
+        return self._get('image')
+
+    @property
+    def description(self):
+        return self._get('description')
+
+    def fetch(self):
+        headers = {'User-Agent': 'Aggregate Report/1.0'}
+
+        content = requests.get(self._url, headers=headers, timeout=1)
+        content.raise_for_status()
+        return content.text
+
+    def parse(self):
+        content = self.fetch()
+        soup = BeautifulSoup(content, "html5lib")
+
+        og_tags = soup.findAll(property=re.compile(r'^og'))
+        for tag in og_tags:
+            if tag.has_attr('content'):
+                self.attrs[tag['property'][3:]] = tag['content']
 
 
 class PostParser:
@@ -74,6 +118,72 @@ class PostParser:
             raise AttributeError
 
 
+def process_posts(feed, link_urls, collection_offset):
+    """Process posts from a RSS feed."""
+    posts = []
+    feed_data = feedparser.parse(feed.url)
+
+    # For each entry in the RSS feed, parse the content then update
+    # the database. First we create a new post. We then build entities
+    # and Feed <-> Post entries.
+    for entry in feed_data.entries:
+        try:
+            post = PostParser(entry)
+        except AttributeError:
+            # This post was missing critical entries.
+            continue
+
+        # If the post has a published datetime, make it TZ aware.
+        # Otherwise set the published time to now.
+        try:
+            post_datetime = post.datetime.astimezone()
+        except Exception:
+            continue
+
+        # discard entries with irregular dates
+        if post_datetime > now() or post_datetime < collection_offset:
+            continue
+
+        if len(post.title) > 255 or len(post.link) > 255:
+            continue
+
+        if post.link in link_urls:
+            continue
+
+        title = post.title
+        desc = post.description
+        try:
+            og = OpenGraphParser(post.link)
+
+            if og.title is not None:
+                title = og.title
+
+            if og.description is not None:
+                desc = og.description
+
+        except Exception:
+            pass
+
+        if len(desc) > 255:
+            desc = desc[:255]
+
+        # If this particular post has not been processed
+        # previously, process it.
+        link_urls.add(post.link)
+
+        # Build the post object.
+        p = Post(
+            feed_id=feed.id,
+            title=title,
+            desc=desc,
+            link=post.link,
+            published_datetime=post_datetime,
+        )
+        posts.append(p)
+
+    return posts
+
+
 class Collector(Job):
     """Post collection job."""
 
@@ -106,107 +216,49 @@ class Collector(Job):
 
         return set(post.link for post in source_posts)
 
-    def process_posts(self, entries, feed, link_urls):
-        """Process posts from a RSS feed."""
-        new_post_count = 0
-
-        # For each entry in the RSS feed, parse the content then update
-        # the database. First we create a new post. We then build entities
-        # and Feed <-> Post entries.
-        for entry in entries:
-            try:
-                post = PostParser(entry)
-            except AttributeError:
-                # This post was missing critical entries.
-                continue
-
-            # If the post has a published datetime, make it TZ aware.
-            # Otherwise set the published time to now.
-            try:
-                post_datetime = post.datetime.astimezone()
-            except Exception:
-                continue
-
-            # discard entries with irregular dates
-            if post_datetime > now() or post_datetime < self._collection_offset:
-                continue
-
-            if len(post.title) > 255 or len(post.link) > 255:
-                continue
-
-            if post.link not in link_urls:
-                # If this particular post has not been processed
-                # previously, process it.
-                link_urls.add(post.link)
-
-                # Build and save the post object.
-                p = Post.create(
-                    feed_id=feed.id,
-                    title=post.title,
-                    desc=post.description,
-                    link=post.link,
-                    published_datetime=post_datetime,
-                )
-                pa = PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
-                q = EntityProcessQueue(post_id=p.id)
-                db.session.add(p)
-                db.session.add(pa)
-                db.session.add(q)
-
-                new_post_count += 1
-
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            self.lock.remove()
-            raise
-
-        return new_post_count
-
     def process_feeds(self):
         """Process feeds ready for review."""
+        feed_posts = []
         with ThreadPoolExecutor() as executor:
-            futures_to_feed = {
-                executor.submit(feedparser.parse, feed.url): feed
-                for feed in self.due_feeds
-            }
+            futures_to_feed = {}
+
+            for feed in self.due_feeds:
+                link_urls = self.get_source_posts(feed.source)
+                futures_to_feed[executor.submit(process_posts, feed, link_urls, self._collection_offset)] = feed
 
             for future in as_completed(futures_to_feed):
+                current_app.logger.info("Processing feed {}.".format(feed.id))
                 feed = futures_to_feed[future]
-                feed_data = future.result()
+                posts = future.result()
+                feed_posts.append((feed, posts))
 
-                link_urls = self.get_source_posts(feed.source)
-                new_post_count = self.process_posts(feed_data.entries, feed, link_urls)
+        for feed, posts in feed_posts:
+            current_app.logger.info("Saving posts from feed {}.".format(feed.id))
+            new_post_count = len(posts)
+            for p in posts:
+                p.save()
+                PostAction.create(post_id=p.id, clicks=0, impressions=0, ctr=0)
+                EntityProcessQueue.create(post_id=p.id)
 
-                update_frequency = feed.status.update_frequency
-                if new_post_count > 0:
-                    update_frequency = feed.status.update_frequency - 1
-                elif new_post_count == 0:
-                    update_frequency = feed.status.update_frequency + 1
+            update_frequency = feed.status.update_frequency
+            if new_post_count > 0:
+                update_frequency = feed.status.update_frequency - 1
+            elif new_post_count == 0:
+                update_frequency = feed.status.update_frequency + 1
 
-                if update_frequency < MIN_UPDATE_FREQ:
-                    update_frequency = MIN_UPDATE_FREQ
-                elif update_frequency > MAX_UPDATE_FREQ:
-                    update_frequency = MAX_UPDATE_FREQ
+            if update_frequency < MIN_UPDATE_FREQ:
+                update_frequency = MIN_UPDATE_FREQ
+            elif update_frequency > MAX_UPDATE_FREQ:
+                update_frequency = MAX_UPDATE_FREQ
 
-                # Update the record in the status table
-                feed.status.update(
-                    update_frequency=update_frequency, update_datetime=now()
-                )
-                if new_post_count > 0:
-                    current_app.logger.info(
-                        "Added {} new posts for feed {}.".format(new_post_count, feed)
-                    )
+            # Update the record in the status table
+            feed.status.update(update_frequency=update_frequency, update_datetime=now())
 
     def run(self):
         """Run the processor."""
         if self.lock.is_locked():
-            if not self.lock.is_expired():
-                current_app.logger.info("Collection still in progress. Skipping.")
-                return
-            else:
-                self.lock.remove()
+            current_app.logger.info("Collection still in progress. Skipping.")
+            return
 
         self.get_due_feeds()
         if len(self.due_feeds) == 0:
