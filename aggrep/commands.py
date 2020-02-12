@@ -125,7 +125,7 @@ def seed_feeds():
                     category_id=category.id, source_id=source.id, url=row["url"]
                 )
                 Status.create(
-                    feed_id=feed.id, update_datetime=status_offset, update_frequency=3
+                    feed_id=feed.id, update_datetime=status_offset, update_frequency=3, active=True,
                 )
                 feed_cache.add(row["url"])
 
