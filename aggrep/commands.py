@@ -161,10 +161,28 @@ def seed_locks():
 @click.option("--identifier", type=click.Choice(JOB_TYPES))
 @with_appcontext
 def unlock_job(identifier):
-    """Run the tests."""
+    """Unlock a job."""
     job_type = JobType.query.filter(JobType.job == identifier).first()
     job_lock = JobLock.query.filter(JobLock.job == job_type).first()
     job_lock.delete()
+
+
+@click.command()
+@click.option("--feed-id", type=click.Choice(JOB_TYPES))
+@with_appcontext
+def activate_feed(feed_id):
+    """Activate a feed."""
+    status = Status.query.get(feed_id)
+    status.update(active=True)
+
+
+@click.command()
+@click.option("--feed-id", type=click.Choice(JOB_TYPES))
+@with_appcontext
+def deactivate_feed(feed_id):
+    """Deactivate a feed."""
+    status = Status.query.get(feed_id)
+    status.update(active=False)
 
 
 @click.command()
