@@ -110,6 +110,7 @@ class Status(BaseModel):
     feed_id = db.Column(db.Integer, db.ForeignKey("feeds.id"), unique=True)
     update_datetime = db.Column(db.DateTime, nullable=False, default=now)
     update_frequency = db.Column(db.Integer, default=0)
+    active = db.Column(db.Boolean(), default=True)
 
 
 class Feed(BaseModel):

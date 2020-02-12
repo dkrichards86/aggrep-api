@@ -89,7 +89,7 @@ class Collector(Job):
     def get_due_feeds(self):
         """Get feeds in need of processing."""
         due_feeds = []
-        for status in Status.query.order_by(Status.id).all():
+        for status in Status.query.filter(Status.active == True). order_by(Status.id).all():
             update_datetime = status.update_datetime.replace(tzinfo=timezone.utc)
 
             status_offset = 2 ** status.update_frequency
