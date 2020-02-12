@@ -46,7 +46,7 @@ class OpenGraphParser:
     def fetch(self):
         headers = {'User-Agent': 'Aggregate Report/1.0'}
 
-        content = requests.get(self._url, headers=headers, timeout=5)
+        content = requests.get(self._url, headers=headers, timeout=1)
         content.raise_for_status()
         return content.text
 
