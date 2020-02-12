@@ -230,27 +230,6 @@ class Entity(BaseModel):
     )
 
 
-class SimilarityProcessQueue(BaseModel):
-    """Similarity queue model."""
-
-    __tablename__ = "similarity_queue"
-    post_id = db.Column(
-        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), unique=True
-    )
-
-    post = db.relationship("Post")
-
-
-class Similarity(BaseModel):
-    """Similarity model."""
-
-    __tablename__ = "similarities"
-    source_id = db.Column(
-        db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), index=True
-    )
-    related_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"))
-
-
 class JobType(BaseModel):
     """JobType model."""
 
