@@ -82,7 +82,7 @@ class EntityExtractor(Job):
             if not post.desc:
                 continue
 
-            post_doc = extract(clean(post.title))
+            post_doc = extract(clean("{}. {}".format(post.title, post.desc)))
             for word in post_doc:
                 e = Entity(entity=word, post_id=post.id)
                 db.session.add(e)
