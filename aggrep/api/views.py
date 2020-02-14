@@ -126,7 +126,7 @@ def all_posts():
             title = "Latest Posts"
 
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
-        cache.set(cache_key, cached, timeout=60)
+        cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
         register_impression(item["id"])
@@ -169,7 +169,7 @@ def posts_by_source(source):
             title = "Latest Posts by {}".format(src.title)
 
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
-        cache.set(cache_key, cached, timeout=60)
+        cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
         register_impression(item["id"])
@@ -212,7 +212,7 @@ def posts_by_category(category):
             title = "Latest Posts in {}".format(cat.title)
 
         cached = dict(**Post.to_collection_dict(posts, page, per_page), title=title)
-        cache.set(cache_key, cached, timeout=60)
+        cache.set(cache_key, cached, timeout=180)
 
     for item in cached["items"]:
         register_impression(item["id"])
