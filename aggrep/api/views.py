@@ -42,7 +42,7 @@ from aggrep.api.posts import (
     sort_posts,
 )
 from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
-from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source, User
+from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source, Status, User
 from aggrep.utils import get_cache_key
 
 app = Blueprint("app", __name__, template_folder="templates")
@@ -404,7 +404,9 @@ def sources():
     """Get all sources with at least one active feed."""
     sources = []
     for s in Source.query.order_by(Source.title.asc()).all():
-        has_active_feeds = Feed.query.filter(Feed.source == s, Feed.active == True).count() > 0
+        has_active_feeds = (Feed.query.filter(Feed.source == s)
+                                .filter(Feed.status.has(Status.active == True))
+                                .count() > 0)
         if has_active_feeds:
             sources.append(s.to_dict())
     return jsonify(sources=sources), 200
@@ -426,7 +428,9 @@ def manage_sources():
     all_source_ids = []
     for s in Source.query.order_by(Source.title.asc()).all():
         all_source_ids.append(s.id)
-        has_active_feeds = Feed.query.filter(Feed.source == s, Feed.active == True).count() > 0
+        has_active_feeds = (Feed.query.filter(Feed.source == s)
+                                .filter(Feed.status.has(Status.active == True))
+                                .count() > 0)
         if has_active_feeds:
             sources.append(s)
 
