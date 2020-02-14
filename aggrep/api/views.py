@@ -42,7 +42,7 @@ from aggrep.api.posts import (
     sort_posts,
 )
 from aggrep.constants import LATEST, N_RECENT_POSTS, POPULAR, RELEVANT
-from aggrep.models import Bookmark, Category, Post, PostAction, PostView, Source, User
+from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source, User
 from aggrep.utils import get_cache_key
 
 app = Blueprint("app", __name__, template_folder="templates")
@@ -401,8 +401,12 @@ def viewed_posts():
 
 @api.route("/sources")
 def sources():
-    """Get all sources."""
-    sources = [s.to_dict() for s in Source.query.order_by(Source.title.asc()).all()]
+    """Get all sources with at least one active feed."""
+    sources = []
+    for s in Source.query.order_by(Source.title.asc()).all():
+        has_active_feeds = Feed.query.filter(Feed.source == s, Feed.active == True).count() > 0
+        if has_active_feeds:
+            sources.append(s.to_dict())
     return jsonify(sources=sources), 200
 
 
@@ -418,8 +422,13 @@ def categories():
 def manage_sources():
     """Manage a user's excluded sources."""
     current_user = User.get_user_from_identity(get_jwt_identity())
-    sources = Source.query.order_by(Source.title.asc()).all()
-    all_source_ids = [s.id for s in sources]
+    sources = []
+    all_source_ids = []
+    for s in Source.query.order_by(Source.title.asc()).all():
+        all_source_ids.append(s.id)
+        has_active_feeds = Feed.query.filter(Feed.source == s, Feed.active == True).count() > 0
+        if has_active_feeds:
+            sources.append(s)
 
     if request.method == "POST":
         data = request.get_json()
