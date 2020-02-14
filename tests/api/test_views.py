@@ -4,7 +4,17 @@ from unittest import mock
 import pytest
 from flask_jwt_extended import create_access_token
 
-from aggrep.models import Bookmark, Category, Feed, Post, PostAction, PostView, Source
+from aggrep.models import (
+    Bookmark,
+    Category,
+    Feed,
+    Post,
+    PostAction,
+    PostView,
+    Source,
+    Status,
+)
+from aggrep.utils import now
 from tests.factories import CategoryFactory, PostFactory, SourceFactory
 
 
@@ -652,15 +662,89 @@ class TestSources:
     def test_endpoint(self, app, client):
         """Test a successful request."""
 
-        for instance in SourceFactory.create_batch(25):
-            instance.save()
+        cat = Category.create(slug="category", title="Test Category")
+
+        src1 = Source.create(slug="source", title="Test Source")
+        src2 = Source.create(slug="source2", title="Test Source 2")
+
+        f1 = Feed.create(source=src1, category=cat, url="feed1.com")
+        f2 = Feed.create(source=src1, category=cat, url="feed2.com")
+        f3 = Feed.create(source=src2, category=cat, url="feed3.com")
+
+        Status.create(
+            feed_id=f1.id, update_datetime=now(), update_frequency=3, active=True
+        )
+        Status.create(
+            feed_id=f2.id, update_datetime=now(), update_frequency=3, active=True
+        )
+        Status.create(
+            feed_id=f3.id, update_datetime=now(), update_frequency=3, active=True
+        )
 
         rv = client.get("/v1/sources")
 
         assert rv.status_code == 200
         json_data = rv.get_json()
 
-        assert len(json_data["sources"]) == 25
+        assert len(json_data["sources"]) == 2
+
+    def test_endpoint_with_inactive(self, app, client):
+        """Test a successful request."""
+
+        cat = Category.create(slug="category", title="Test Category")
+
+        src1 = Source.create(slug="source", title="Test Source")
+        src2 = Source.create(slug="source2", title="Test Source 2")
+
+        f1 = Feed.create(source=src1, category=cat, url="feed1.com")
+        f2 = Feed.create(source=src1, category=cat, url="feed2.com")
+        f3 = Feed.create(source=src2, category=cat, url="feed3.com")
+
+        Status.create(
+            feed_id=f1.id, update_datetime=now(), update_frequency=3, active=True
+        )
+        Status.create(
+            feed_id=f2.id, update_datetime=now(), update_frequency=3, active=False
+        )
+        Status.create(
+            feed_id=f3.id, update_datetime=now(), update_frequency=3, active=True
+        )
+
+        rv = client.get("/v1/sources")
+
+        assert rv.status_code == 200
+        json_data = rv.get_json()
+
+        assert len(json_data["sources"]) == 2
+
+    def test_endpoint_with_all_inactive(self, app, client):
+        """Test a successful request."""
+
+        cat = Category.create(slug="category", title="Test Category")
+
+        src1 = Source.create(slug="source", title="Test Source")
+        src2 = Source.create(slug="source2", title="Test Source 2")
+
+        f1 = Feed.create(source=src1, category=cat, url="feed1.com")
+        f2 = Feed.create(source=src1, category=cat, url="feed2.com")
+        f3 = Feed.create(source=src2, category=cat, url="feed3.com")
+
+        Status.create(
+            feed_id=f1.id, update_datetime=now(), update_frequency=3, active=True
+        )
+        Status.create(
+            feed_id=f2.id, update_datetime=now(), update_frequency=3, active=True
+        )
+        Status.create(
+            feed_id=f3.id, update_datetime=now(), update_frequency=3, active=False
+        )
+
+        rv = client.get("/v1/sources")
+
+        assert rv.status_code == 200
+        json_data = rv.get_json()
+
+        assert len(json_data["sources"]) == 1
 
 
 @pytest.mark.usefixtures("db")
