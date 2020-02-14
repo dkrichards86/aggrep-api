@@ -25,7 +25,7 @@ http://feeds.foxnews.com/foxnews/national,News,Fox News
 http://feeds.foxnews.com/foxnews/world,News,Fox News
 http://feeds.bbci.co.uk/news/rss.xml,News,BBC
 http://feeds.bbci.co.uk/news/world/rss.xml,News,BBC
-http://feeds.bbci.co.uk/news/uk/rss.xml,News,BBC
+http://feeds.bbci.co.uk/news/world/us_and_world/rss.xml,News,BBC
 http://feeds.bbci.co.uk/news/business/rss.xml,Business,BBC
 http://feeds.bbci.co.uk/news/politics/rss.xml,News,BBC
 http://feeds.bbci.co.uk/news/health/rss.xml,Health,BBC
@@ -164,12 +164,6 @@ https://www.theguardian.com/us/culture/rss,Entertainment,The Guardian
 https://www.theguardian.com/us/business/rss,Business,The Guardian
 https://www.theguardian.com/us/technology/rss,Technology,The Guardian
 https://www.vox.com/rss/index.xml,News,Vox
-https://www.latimes.com/world-nation/rss2.0.xml,News,LA Times
-https://www.latimes.com/sports/rss2.0.xml,Sports,LA Times
-https://www.latimes.com/politics/rss2.0.xml,News,LA Times
-https://www.latimes.com/business/rss2.0.xml,Business,LA Times,
-https://www.latimes.com/entertainment-arts/rss2.0.xml,Entertainment,LA Times
-https://www.latimes.com/science/rss2.0.xml,Science,LA Times
 http://www.independent.co.uk/news/world/rss,News,Independent
 http://www.independent.co.uk/news/business/rss,Business,Independent
 http://www.independent.co.uk/news/science/rss,Science,Independent
@@ -182,7 +176,6 @@ https://www.theatlantic.com/feed/channel/science/,Science,The Atlantic
 https://markets.businessinsider.com/rss/news,Business,Business Insider
 https://www.newrepublic.com/rss.xml,News,New Republic
 http://feeds.feedburner.com/BreakingScienceNews?format=xml,Science,Sci News
-https://feedpress.me/drudgereportfeed,News,Drudge Report
 http://www.insideedition.com/interfaces/rss,Entertainment,Inside Edition
 https://feeds.feedburner.com/venturebeat/SZYF,Technology,Venture Beat
 https://www.cnet.com/rss/news/,Technology,CNet
