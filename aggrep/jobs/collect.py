@@ -1,63 +1,85 @@
 """Post collection job."""
 import re
-import requests
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from time import mktime
 
 import feedparser
+import requests
 from bs4 import BeautifulSoup
 from flask import current_app
 
-from aggrep import db
 from aggrep.jobs.base import Job
-from aggrep.models import EntityProcessQueue, Feed, Post, PostAction, Source, Status
+from aggrep.models import (
+    Category,
+    EntityProcessQueue,
+    Feed,
+    Post,
+    PostAction,
+    Source,
+    Status,
+)
 from aggrep.utils import now
 
 MIN_UPDATE_FREQ = 3  # 2**3 minutes (8)
-MAX_UPDATE_FREQ = 8  # 2**8 minutes (256)
+MAX_UPDATE_FREQ = 6  # 2**8 minutes (64)
+BATCH_SIZE = 10
+
+
+source_cache = defaultdict(set)
 
 
 class OpenGraphParser:
+    """Parse an article's OpenGraph data for richer content."""
+
     def __init__(self, url):
+        """Parser init."""
         self.attrs = dict()
         self._url = url
         self.parse()
 
     def _get(self, attr):
+        """Get an OG attribute."""
         return self.attrs.get(attr)
 
     @property
     def url(self):
-        return self._get('url')
+        """Get the OG URL attribute."""
+        return self._get("url")
 
     @property
     def title(self):
-        return self._get('title')
+        """Get the OG title attribute."""
+        return self._get("title")
 
     @property
     def image(self):
-        return self._get('image')
+        """Get the OG image attribute."""
+        return self._get("image")
 
     @property
     def description(self):
-        return self._get('description')
+        """Get the OG description attribute."""
+        return self._get("description")
 
     def fetch(self):
-        headers = {'User-Agent': 'Aggregate Report/1.0'}
+        """Fetch OG data."""
+        headers = {"User-Agent": "Aggregate Report/1.0"}
 
         content = requests.get(self._url, headers=headers, timeout=1)
         content.raise_for_status()
         return content.text
 
     def parse(self):
+        """Fetch and parse OG data."""
         content = self.fetch()
         soup = BeautifulSoup(content, "html5lib")
 
-        og_tags = soup.findAll(property=re.compile(r'^og'))
+        og_tags = soup.findAll(property=re.compile(r"^og"))
         for tag in og_tags:
-            if tag.has_attr('content'):
-                self.attrs[tag['property'][3:]] = tag['content']
+            if tag.has_attr("content"):
+                self.attrs[tag["property"][3:]] = tag["content"]
 
 
 class PostParser:
@@ -188,7 +210,7 @@ class Collector(Job):
     """Post collection job."""
 
     identifier = "COLLECT"
-    lock_timeout = 8
+    lock_timeout = 6
 
     def __init__(self, ndays=1):
         """Init."""
@@ -196,17 +218,24 @@ class Collector(Job):
         self._collection_offset = now() - timedelta(days=ndays)
         self._archival_offset = now() - timedelta(days=ndays + 1)
 
-    def get_due_feeds(self):
+    def get_due_feeds(self, category):
         """Get feeds in need of processing."""
         due_feeds = []
-        for status in Status.query.filter(Status.active == True). order_by(Status.id).all():
+        processable_feeds = (
+            Status.query.filter(
+                Status.feed.has(Feed.category == category), Status.active == True
+            )
+            .order_by(Status.id)
+            .all()
+        )
+        for status in processable_feeds:
             update_datetime = status.update_datetime.replace(tzinfo=timezone.utc)
 
             status_offset = 2 ** status.update_frequency
             if update_datetime <= now() - timedelta(minutes=status_offset):
                 due_feeds.append(status.feed)
 
-        self.due_feeds = due_feeds
+        return due_feeds
 
     def get_source_posts(self, source):
         """Get posts from a source."""
@@ -214,17 +243,22 @@ class Collector(Job):
             Post.published_datetime >= self._archival_offset
         ).filter(Post.feed.has(Feed.source.has(Source.id == source.id)))
 
-        return set(post.link for post in source_posts)
+        source_cache[source.title].update(post.link for post in source_posts)
 
-    def process_feeds(self):
+    def process_feeds(self, due_feeds):
         """Process feeds ready for review."""
         feed_posts = []
         with ThreadPoolExecutor() as executor:
             futures_to_feed = {}
 
-            for feed in self.due_feeds:
-                link_urls = self.get_source_posts(feed.source)
-                futures_to_feed[executor.submit(process_posts, feed, link_urls, self._collection_offset)] = feed
+            for feed in due_feeds:
+                self.get_source_posts(feed.source)
+                link_urls = source_cache[feed.source.title]
+                futures_to_feed[
+                    executor.submit(
+                        process_posts, feed, link_urls, self._collection_offset
+                    )
+                ] = feed
 
             for future in as_completed(futures_to_feed):
                 current_app.logger.info("Processing feed {}.".format(feed.id))
@@ -257,20 +291,36 @@ class Collector(Job):
     def run(self):
         """Run the processor."""
         if self.lock.is_locked():
-            current_app.logger.info("Collection still in progress. Skipping.")
-            return
-
-        self.get_due_feeds()
-        if len(self.due_feeds) == 0:
-            current_app.logger.info("No dirty feeds to collect. Skipping.")
-            return
+            if not self.lock.is_expired():
+                current_app.logger.info("Collection still in progress. Skipping.")
+                return
+            else:
+                self.lock.remove()
 
         self.lock.create()
-        current_app.logger.info(
-            "Collecting new posts from {} dirty feeds.".format(len(self.due_feeds))
-        )
 
-        self.process_feeds()
+        for category in Category.query.all():
+            due_feeds = self.get_due_feeds(category)
+            if len(due_feeds) == 0:
+                current_app.logger.info(
+                    "No dirty feeds to collect in category {}. Skipping.".format(
+                        category.title
+                    )
+                )
+                continue
+
+            current_app.logger.info(
+                "{} dirty feeds in category {}.".format(len(due_feeds), category.title)
+            )
+
+            start = 0
+            while start < len(due_feeds):
+                if not self.lock.is_locked() or self.lock.is_expired():
+                    break
+                end = start + BATCH_SIZE
+                batch = due_feeds[start:end]
+                self.process_feeds(batch)
+                start = end
 
         current_app.logger.info("Unlocking collector.")
         self.lock.remove()
