@@ -63,9 +63,11 @@ class EntityExtractor(Job):
 
     def get_enqueued_posts(self):
         """Get enqueued posts."""
-        posts = EntityProcessQueue.query.order_by(
-            desc(EntityProcessQueue.id)
-        ).limit(PER_RUN_LIMIT).all()
+        posts = (
+            EntityProcessQueue.query.order_by(desc(EntityProcessQueue.id))
+            .limit(PER_RUN_LIMIT)
+            .all()
+        )
 
         return [eq.post for eq in posts]
 

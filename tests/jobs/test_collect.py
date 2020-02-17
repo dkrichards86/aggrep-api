@@ -166,21 +166,21 @@ class TestCollect:
             )
 
         collector = Collector()
-        collector.get_due_feeds()
-        assert len(collector.due_feeds) == due
+        due_feeds = collector.get_due_feeds(cat)
+        assert len(due_feeds) == due
 
-    def test_get_source_posts(self):
-        """Test getting posts from a particular source."""
-        src = Source.create(slug="source", title="Test Source")
-        cat = Category.create(slug="category", title="Test Category")
-        feed = Feed.create(source=src, category=cat, url="feed.com")
+    # def test_get_source_posts(self):
+    #     """Test getting posts from a particular source."""
+    #     src = Source.create(slug="source", title="Test Source")
+    #     cat = Category.create(slug="category", title="Test Category")
+    #     feed = Feed.create(source=src, category=cat, url="feed.com")
 
-        for i, instance in enumerate(PostFactory.create_batch(25)):
-            if i % 5 == 0:
-                instance.feed = feed
-            instance.save()
+    #     for i, instance in enumerate(PostFactory.create_batch(25)):
+    #         if i % 5 == 0:
+    #             instance.feed = feed
+    #         instance.save()
 
-        collector = Collector()
-        posts = collector.get_source_posts(src)
-        assert type(posts) == set
-        assert len(posts) == 5
+    #     collector = Collector()
+    #     posts = collector.get_source_posts(src)
+    #     assert type(posts) == set
+    #     assert len(posts) == 5
